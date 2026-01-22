@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Security Awareness - PhishLab</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/"><strong>🎣 PhishLab</strong></a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link" href="/">Home</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/simulate">Simulate</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/header-analyzer">Header Analyzer</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/url-scanner">URL Scanner</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/login-detector">Login Detector</a></li>
+                    <li class="nav-item"><a class="nav-link active" href="/awareness">Awareness</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Content -->
+    <div class="container my-5">
+        <h1 class="mb-4">📚 Phishing Security Awareness</h1>
+        
+        <div class="alert alert-info">
+            <strong>🎯 Goal:</strong> Educate yourself about phishing attacks, learn to recognize threats, 
+            and implement strong defense strategies.
+        </div>
+
+        <!-- Types of Phishing -->
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">🎭 Types of Phishing Attacks</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <div class="phishing-type-box p-3 border rounded">
+                            <h6><strong>📧 Email Phishing</strong></h6>
+                            <p class="mb-0">Mass emails impersonating legitimate organizations to steal credentials or install malware.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="phishing-type-box p-3 border rounded">
+                            <h6><strong>🎯 Spear Phishing</strong></h6>
+                            <p class="mb-0">Targeted attacks against specific individuals or organizations using personalized information.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="phishing-type-box p-3 border rounded">
+                            <h6><strong>🐋 Whaling</strong></h6>
+                            <p class="mb-0">High-value targets like executives, CEOs, and senior management.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="phishing-type-box p-3 border rounded">
+                            <h6><strong>💬 Smishing (SMS Phishing)</strong></h6>
+                            <p class="mb-0">Phishing via text messages with malicious links or requests for information.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="phishing-type-box p-3 border rounded">
+                            <h6><strong>📞 Vishing (Voice Phishing)</strong></h6>
+                            <p class="mb-0">Phone calls impersonating legitimate entities to extract sensitive information.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="phishing-type-box p-3 border rounded">
+                            <h6><strong>🔗 Clone Phishing</strong></h6>
+                            <p class="mb-0">Duplicating legitimate emails but replacing links/attachments with malicious ones.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Do's and Don'ts -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card h-100 border-success">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0">✅ DO's - Best Practices</h5>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item">✓ Verify sender email addresses carefully</li>
+                            <li class="list-group-item">✓ Hover over links to see actual destination</li>
+                            <li class="list-group-item">✓ Check for HTTPS and valid SSL certificates</li>
+                            <li class="list-group-item">✓ Enable Multi-Factor Authentication (MFA)</li>
+                            <li class="list-group-item">✓ Use strong, unique passwords</li>
+                            <li class="list-group-item">✓ Keep software and systems updated</li>
+                            <li class="list-group-item">✓ Report suspicious emails to IT security</li>
+                            <li class="list-group-item">✓ Navigate directly to official websites</li>
+                            <li class="list-group-item">✓ Use password managers</li>
+                            <li class="list-group-item">✓ Verify unexpected requests via phone</li>
+                            <li class="list-group-item">✓ Trust your instincts - if suspicious, don't click</li>
+                            <li class="list-group-item">✓ Regular security training</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card h-100 border-danger">
+                    <div class="card-header bg-danger text-white">
+                        <h5 class="mb-0">❌ DON'Ts - What to Avoid</h5>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item">✗ Never click suspicious links or attachments</li>
+                            <li class="list-group-item">✗ Don't trust urgent or threatening messages</li>
+                            <li class="list-group-item">✗ Don't share passwords via email/phone</li>
+                            <li class="list-group-item">✗ Don't ignore browser security warnings</li>
+                            <li class="list-group-item">✗ Don't use same password across sites</li>
+                            <li class="list-group-item">✗ Don't enter credentials on HTTP sites</li>
+                            <li class="list-group-item">✗ Don't download from untrusted sources</li>
+                            <li class="list-group-item">✗ Don't trust caller ID alone</li>
+                            <li class="list-group-item">✗ Don't skip software updates</li>
+                            <li class="list-group-item">✗ Don't click shortened URLs in emails</li>
+                            <li class="list-group-item">✗ Don't assume email sender is legitimate</li>
+                            <li class="list-group-item">✗ Don't ignore your gut feeling</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Red Flags Checklist -->
+        <div class="card mb-4">
+            <div class="card-header bg-warning">
+                <h5 class="mb-0">🚩 Red Flags Checklist - Warning Signs</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Email Red Flags:</h6>
+                        <ul>
+                            <li>Generic greetings ("Dear User")</li>
+                            <li>Spelling and grammar errors</li>
+                            <li>Mismatched or suspicious sender email</li>
+                            <li>Urgent language or threats</li>
+                            <li>Unexpected attachments</li>
+                            <li>Requests for sensitive information</li>
+                            <li>Too good to be true offers</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Website Red Flags:</h6>
+                        <ul>
+                            <li>No HTTPS/invalid certificate</li>
+                            <li>Misspelled domain names</li>
+                            <li>Poor design or branding</li>
+                            <li>Suspicious URLs or redirects</li>
+                            <li>Unexpected login requests</li>
+                            <li>No contact information</li>
+                            <li>Pressure to act quickly</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Real-World Examples -->
+        <div class="card mb-4">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">🌍 Real-World Examples & Case Studies</h5>
+            </div>
+            <div class="card-body">
+                <div class="accordion" id="examplesAccordion">
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#example1">
+                                2016 - DNC Email Hack
+                            </button>
+                        </h2>
+                        <div id="example1" class="accordion-collapse collapse show" data-bs-parent="#examplesAccordion">
+                            <div class="accordion-body">
+                                <strong>Attack Type:</strong> Spear Phishing<br>
+                                <strong>Target:</strong> Democratic National Committee<br>
+                                <strong>Method:</strong> Targeted phishing emails with fake security alerts led to credential theft.<br>
+                                <strong>Impact:</strong> Massive data breach, exposed emails, political consequences.<br>
+                                <strong>Lesson:</strong> Even high-profile organizations are vulnerable to phishing.
+                            </div>
+                        </div>
+                    </div>
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#example2">
+                                2020 - Twitter Bitcoin Scam
+                            </button>
+                        </h2>
+                        <div id="example2" class="accordion-collapse collapse" data-bs-parent="#examplesAccordion">
+                            <div class="accordion-body">
+                                <strong>Attack Type:</strong> Social Engineering + Phishing<br>
+                                <strong>Target:</strong> Twitter employees<br>
+                                <strong>Method:</strong> Phone-based social engineering to access internal tools.<br>
+                                <strong>Impact:</strong> Compromise of high-profile accounts (Obama, Musk, Gates), Bitcoin scam.<br>
+                                <strong>Lesson:</strong> Insider access through social engineering is extremely dangerous.
+                            </div>
+                        </div>
+                    </div>
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#example3">
+                                2022 - LastPass Breach
+                            </button>
+                        </h2>
+                        <div id="example3" class="accordion-collapse collapse" data-bs-parent="#examplesAccordion">
+                            <div class="accordion-body">
+                                <strong>Attack Type:</strong> Targeted Phishing + Malware<br>
+                                <strong>Target:</strong> LastPass engineer<br>
+                                <strong>Method:</strong> Compromised employee home computer to access corporate systems.<br>
+                                <strong>Impact:</strong> Customer vault data accessed.<br>
+                                <strong>Lesson:</strong> Secure both work and personal devices; use MFA everywhere.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Interactive Quiz -->
+        <div class="card mb-4">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0">🧠 Test Your Knowledge - Quick Quiz</h5>
+            </div>
+            <div class="card-body">
+                <div id="quizContainer">
+                    <div class="quiz-question mb-4">
+                        <h6>Question 1: You receive an urgent email from "IT Support" asking you to verify your password. What should you do?</h6>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="q1" id="q1a" value="wrong">
+                            <label class="form-check-label" for="q1a">Click the link and enter your password</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="q1" id="q1b" value="correct">
+                            <label class="form-check-label" for="q1b">Contact IT department directly through official channels</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="q1" id="q1c" value="wrong">
+                            <label class="form-check-label" for="q1c">Reply to the email asking if it's legitimate</label>
+                        </div>
+                    </div>
+
+                    <div class="quiz-question mb-4">
+                        <h6>Question 2: Which of these is the BEST indicator of a phishing email?</h6>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="q2" id="q2a" value="wrong">
+                            <label class="form-check-label" for="q2a">The email has your name in the greeting</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="q2" id="q2b" value="correct">
+                            <label class="form-check-label" for="q2b">The sender domain has subtle misspellings (e.g., "g00gle" instead of "google")</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="q2" id="q2c" value="wrong">
+                            <label class="form-check-label" for="q2c">The email contains images</label>
+                        </div>
+                    </div>
+
+                    <div class="quiz-question mb-4">
+                        <h6>Question 3: What is Multi-Factor Authentication (MFA)?</h6>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="q3" id="q3a" value="wrong">
+                            <label class="form-check-label" for="q3a">Using multiple passwords</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="q3" id="q3b" value="correct">
+                            <label class="form-check-label" for="q3b">Requiring two or more verification methods to access an account</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="q3" id="q3c" value="wrong">
+                            <label class="form-check-label" for="q3c">Changing your password monthly</label>
+                        </div>
+                    </div>
+
+                    <button class="btn btn-primary" onclick="checkQuiz()">Submit Quiz</button>
+                    <div id="quizResult" class="mt-3" style="display: none;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Reporting Workflow -->
+        <div class="card mb-4">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0">📢 How to Report Phishing</h5>
+            </div>
+            <div class="card-body">
+                <h6>If You Suspect Phishing:</h6>
+                <ol>
+                    <li><strong>Do NOT interact</strong> - Don't click links, download attachments, or reply</li>
+                    <li><strong>Report to IT Security</strong> - Forward email to security@yourcompany.com</li>
+                    <li><strong>Report to Email Provider</strong> - Use "Report Phishing" button in Gmail/Outlook</li>
+                    <li><strong>Report to Anti-Phishing Working Group</strong> - Forward to reportphishing@apwg.org</li>
+                    <li><strong>Report to FTC</strong> - File complaint at reportfraud.ftc.gov</li>
+                    <li><strong>If Financial Loss Occurred</strong> - Report to FBI's IC3 (ic3.gov)</li>
+                    <li><strong>Delete the message</strong> - Remove from inbox and trash</li>
+                    <li><strong>Warn Others</strong> - Alert colleagues if work-related</li>
+                </ol>
+
+                <div class="alert alert-warning mt-3">
+                    <strong>If You Already Clicked or Entered Information:</strong>
+                    <ul class="mb-0">
+                        <li>Immediately change passwords for affected accounts</li>
+                        <li>Enable MFA if not already active</li>
+                        <li>Scan your device for malware</li>
+                        <li>Monitor accounts for unauthorized activity</li>
+                        <li>Contact your bank if financial info was shared</li>
+                        <li>Report to your IT security team</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Resources -->
+        <div class="card mb-4">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0">📖 Additional Resources</h5>
+            </div>
+            <div class="card-body">
+                <ul>
+                    <li><strong>CISA Phishing Guidance:</strong> https://www.cisa.gov/phishing</li>
+                    <li><strong>Anti-Phishing Working Group:</strong> https://apwg.org</li>
+                    <li><strong>FBI Internet Crime Complaint Center:</strong> https://ic3.gov</li>
+                    <li><strong>Google Security Blog:</strong> https://security.googleblog.com</li>
+                    <li><strong>Microsoft Security:</strong> https://www.microsoft.com/security</li>
+                    <li><strong>KnowBe4 Security Awareness:</strong> https://www.knowbe4.com/resources</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-white py-4 mt-5">
+        <div class="container text-center">
+            <p class="mb-0">PhishLab - Educational Cybersecurity Framework © 2026</p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function checkQuiz() {
+            const q1 = document.querySelector('input[name="q1"]:checked');
+            const q2 = document.querySelector('input[name="q2"]:checked');
+            const q3 = document.querySelector('input[name="q3"]:checked');
+
+            if (!q1 || !q2 || !q3) {
+                alert('Please answer all questions');
+                return;
+            }
+
+            let score = 0;
+            if (q1.value === 'correct') score++;
+            if (q2.value === 'correct') score++;
+            if (q3.value === 'correct') score++;
+
+            const resultDiv = document.getElementById('quizResult');
+            resultDiv.style.display = 'block';
+
+            let message = '';
+            let alertClass = '';
+
+            if (score === 3) {
+                alertClass = 'alert-success';
+                message = '🎉 Perfect Score! You scored 3/3. You have excellent phishing awareness!';
+            } else if (score === 2) {
+                alertClass = 'alert-info';
+                message = '👍 Good Job! You scored 2/3. Review the material to improve your awareness.';
+            } else {
+                alertClass = 'alert-warning';
+                message = '⚠️ Needs Improvement. You scored ' + score + '/3. Please review the security best practices above.';
+            }
+
+            resultDiv.className = 'alert ' + alertClass + ' mt-3';
+            resultDiv.innerHTML = '<h6>' + message + '</h6>' +
+                '<p class="mb-0"><strong>Correct Answers:</strong><br>' +
+                '1. Contact IT department directly through official channels<br>' +
+                '2. The sender domain has subtle misspellings<br>' +
+                '3. Requiring two or more verification methods to access an account</p>';
+        }
+    </script>
+</body>
+</html>

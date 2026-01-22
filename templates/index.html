@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PhishLab - Phishing Detection & Defense Framework</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <strong>🎣 PhishLab</strong>
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/simulate">Simulate</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/header-analyzer">Header Analyzer</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/url-scanner">URL Scanner</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/login-detector">Login Detector</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/awareness">Awareness</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero-section py-5 bg-gradient">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-6">
+                    <h1 class="display-4 fw-bold text-white mb-4">PhishLab</h1>
+                    <h2 class="h3 text-white mb-4">End-to-End Phishing Simulation & Defense Framework</h2>
+                    <p class="lead text-white mb-4">
+                        An educational cybersecurity platform for learning about phishing attacks, 
+                        detection techniques, and defense strategies.
+                    </p>
+                    <div class="alert alert-warning">
+                        <strong>⚠️ EDUCATIONAL DISCLAIMER:</strong><br>
+                        This project is strictly for educational and awareness purposes only. 
+                        It does not perform real phishing attacks, credential harvesting, or malicious activity. 
+                        All simulations are safe and offline.
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <div class="card shadow-lg">
+                        <div class="card-body p-4">
+                            <h3 class="card-title mb-4">🎯 Quick Stats</h3>
+                            <div class="row text-center">
+                                <div class="col-6 mb-3">
+                                    <div class="stat-box">
+                                        <h2 class="text-primary mb-0">91%</h2>
+                                        <p class="mb-0">of cyber attacks<br>start with phishing</p>
+                                    </div>
+                                </div>
+                                <div class="col-6 mb-3">
+                                    <div class="stat-box">
+                                        <h2 class="text-danger mb-0">$4.9M</h2>
+                                        <p class="mb-0">average cost of<br>data breach</p>
+                                    </div>
+                                </div>
+                                <div class="col-6 mb-3">
+                                    <div class="stat-box">
+                                        <h2 class="text-warning mb-0">3.4B</h2>
+                                        <p class="mb-0">phishing emails<br>sent daily</p>
+                                    </div>
+                                </div>
+                                <div class="col-6 mb-3">
+                                    <div class="stat-box">
+                                        <h2 class="text-success mb-0">74%</h2>
+                                        <p class="mb-0">of organizations<br>experienced phishing</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="py-5">
+        <div class="container">
+            <h2 class="text-center mb-5">Explore PhishLab Modules</h2>
+            <div class="row g-4">
+                <!-- Phishing Simulation -->
+                <div class="col-md-6 col-lg-4">
+                    <div class="card h-100 feature-card">
+                        <div class="card-body text-center">
+                            <div class="feature-icon mb-3">📧</div>
+                            <h5 class="card-title">Phishing Simulation</h5>
+                            <p class="card-text">
+                                View simulated phishing emails and learn to identify red flags and social engineering tactics.
+                            </p>
+                            <a href="/simulate" class="btn btn-primary">Explore Simulations</a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Email Header Analyzer -->
+                <div class="col-md-6 col-lg-4">
+                    <div class="card h-100 feature-card">
+                        <div class="card-body text-center">
+                            <div class="feature-icon mb-3">🔍</div>
+                            <h5 class="card-title">Email Header Analyzer</h5>
+                            <p class="card-text">
+                                Analyze email headers for SPF, DKIM, DMARC authentication and detect spoofing attempts.
+                            </p>
+                            <a href="/header-analyzer" class="btn btn-primary">Analyze Headers</a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- URL Scanner -->
+                <div class="col-md-6 col-lg-4">
+                    <div class="card h-100 feature-card">
+                        <div class="card-body text-center">
+                            <div class="feature-icon mb-3">🌐</div>
+                            <h5 class="card-title">URL Scanner</h5>
+                            <p class="card-text">
+                                Scan suspicious URLs for typosquatting, domain age, HTTPS issues, and phishing indicators.
+                            </p>
+                            <a href="/url-scanner" class="btn btn-primary">Scan URLs</a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Login Page Detector -->
+                <div class="col-md-6 col-lg-4">
+                    <div class="card h-100 feature-card">
+                        <div class="card-body text-center">
+                            <div class="feature-icon mb-3">🔐</div>
+                            <h5 class="card-title">Fake Login Detector</h5>
+                            <p class="card-text">
+                                Detect fake login pages by analyzing forms, scripts, SSL certificates, and brand impersonation.
+                            </p>
+                            <a href="/login-detector" class="btn btn-primary">Detect Fakes</a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Awareness Dashboard -->
+                <div class="col-md-6 col-lg-4">
+                    <div class="card h-100 feature-card">
+                        <div class="card-body text-center">
+                            <div class="feature-icon mb-3">📚</div>
+                            <h5 class="card-title">Security Awareness</h5>
+                            <p class="card-text">
+                                Learn phishing types, best practices, take interactive quizzes, and view real-world examples.
+                            </p>
+                            <a href="/awareness" class="btn btn-primary">Learn More</a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Defense Strategies -->
+                <div class="col-md-6 col-lg-4">
+                    <div class="card h-100 feature-card">
+                        <div class="card-body text-center">
+                            <div class="feature-icon mb-3">🛡️</div>
+                            <h5 class="card-title">Defense Strategies</h5>
+                            <p class="card-text">
+                                Get personalized defense recommendations, incident response steps, and security controls.
+                            </p>
+                            <a href="/awareness" class="btn btn-primary">View Strategies</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works -->
+    <section class="py-5 bg-light">
+        <div class="container">
+            <h2 class="text-center mb-5">How PhishLab Works</h2>
+            <div class="row">
+                <div class="col-md-3 text-center mb-4">
+                    <div class="step-number">1</div>
+                    <h5>Choose a Module</h5>
+                    <p>Select from simulation, analysis, or detection tools</p>
+                </div>
+                <div class="col-md-3 text-center mb-4">
+                    <div class="step-number">2</div>
+                    <h5>Input Data</h5>
+                    <p>Provide email headers, URLs, or select templates</p>
+                </div>
+                <div class="col-md-3 text-center mb-4">
+                    <div class="step-number">3</div>
+                    <h5>Analyze Results</h5>
+                    <p>Review risk scores and detected indicators</p>
+                </div>
+                <div class="col-md-3 text-center mb-4">
+                    <div class="step-number">4</div>
+                    <h5>Learn & Defend</h5>
+                    <p>Apply defense strategies and best practices</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-white py-4 mt-5">
+        <div class="container text-center">
+            <p class="mb-2"><strong>PhishLab - Educational Cybersecurity Framework</strong></p>
+            <p class="mb-2">For educational and awareness purposes only | © 2026</p>
+            <p class="small text-muted mb-0">
+                This tool simulates phishing scenarios for learning purposes. 
+                No real attacks are performed. Always practice ethical security testing.
+            </p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

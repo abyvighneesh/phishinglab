@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>URL Scanner - PhishLab</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/"><strong>🎣 PhishLab</strong></a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link" href="/">Home</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/simulate">Simulate</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/header-analyzer">Header Analyzer</a></li>
+                    <li class="nav-item"><a class="nav-link active" href="/url-scanner">URL Scanner</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/login-detector">Login Detector</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/awareness">Awareness</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Content -->
+    <div class="container my-5">
+        <h1 class="mb-4">🌐 URL Scanner</h1>
+        
+        <div class="alert alert-info">
+            <strong>ℹ️ How to use:</strong> Enter a suspicious URL to analyze for phishing indicators 
+            including typosquatting, domain age, HTTPS usage, and malicious patterns.
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Enter URL to Scan</h5>
+            </div>
+            <div class="card-body">
+                <input type="text" id="urlInput" class="form-control" 
+                    placeholder="Enter URL (e.g., https://example.com or example.com)">
+                <button id="scanBtn" class="btn btn-primary mt-3" onclick="scanURL()">
+                    <span id="scanText">Scan URL</span>
+                    <span id="scanSpinner" class="spinner-border spinner-border-sm d-none" role="status"></span>
+                </button>
+                
+                <div class="mt-3">
+                    <h6>Test with Example URLs:</h6>
+                    <button class="btn btn-sm btn-outline-secondary me-2" onclick="setURL('https://g00gle-security.com')">Fake Google</button>
+                    <button class="btn btn-sm btn-outline-secondary me-2" onclick="setURL('http://paypa1-secure.tk')">Fake PayPal</button>
+                    <button class="btn btn-sm btn-outline-secondary me-2" onclick="setURL('https://bit.ly/example')">URL Shortener</button>
+                    <button class="btn btn-sm btn-outline-success" onclick="setURL('https://google.com')">Legitimate</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Section -->
+        <div id="resultsSection" style="display: none;">
+            <!-- Risk Score Card -->
+            <div class="card mb-4">
+                <div class="card-header text-white" id="riskHeader">
+                    <h5 class="mb-0">⚠️ Risk Assessment</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 text-center">
+                            <h2 id="riskScore" class="display-3 mb-3">0</h2>
+                            <h4 id="riskLevel" class="mb-3">Analyzing...</h4>
+                            <div class="progress" style="height: 30px;">
+                                <div id="riskBar" class="progress-bar" role="progressbar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <canvas id="riskChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- URL Details -->
+            <div class="card mb-4">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0">🔗 URL Details</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered">
+                            <tr>
+                                <th width="30%">URL</th>
+                                <td><code id="urlFull"></code></td>
+                            </tr>
+                            <tr>
+                                <th>Domain</th>
+                                <td><code id="urlDomain"></code></td>
+                            </tr>
+                            <tr>
+                                <th>HTTPS</th>
+                                <td id="urlHttps"></td>
+                            </tr>
+                            <tr>
+                                <th>URL Shortener</th>
+                                <td id="urlShortened"></td>
+                            </tr>
+                            <tr>
+                                <th>Domain Age</th>
+                                <td id="urlDomainAge"></td>
+                            </tr>
+                            <tr>
+                                <th>Redirects</th>
+                                <td id="urlRedirects"></td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Indicators -->
+            <div class="card mb-4">
+                <div class="card-header bg-warning">
+                    <h5 class="mb-0">🚩 Detected Indicators</h5>
+                </div>
+                <div class="card-body">
+                    <div id="indicatorsList"></div>
+                </div>
+            </div>
+
+            <!-- Defense Recommendations -->
+            <div class="card mb-4">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">🛡️ Defense Recommendations</h5>
+                </div>
+                <div class="card-body">
+                    <div class="accordion" id="defenseAccordion">
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#immediateActions">
+                                    Immediate Actions
+                                </button>
+                            </h2>
+                            <div id="immediateActions" class="accordion-collapse collapse show" data-bs-parent="#defenseAccordion">
+                                <div class="accordion-body">
+                                    <ul id="immediateActionsList"></ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#preventionMeasures">
+                                    Prevention Measures
+                                </button>
+                            </h2>
+                            <div id="preventionMeasures" class="accordion-collapse collapse" data-bs-parent="#defenseAccordion">
+                                <div class="accordion-body">
+                                    <ul id="preventionMeasuresList"></ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-white py-4 mt-5">
+        <div class="container text-center">
+            <p class="mb-0">PhishLab - Educational Cybersecurity Framework © 2026</p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let riskChart = null;
+
+        function setURL(url) {
+            document.getElementById('urlInput').value = url;
+        }
+
+        function scanURL() {
+            const url = document.getElementById('urlInput').value.trim();
+            
+            if (!url) {
+                alert('Please enter a URL to scan');
+                return;
+            }
+
+            // Show loading state
+            document.getElementById('scanText').textContent = 'Scanning...';
+            document.getElementById('scanSpinner').classList.remove('d-none');
+            document.getElementById('scanBtn').disabled = true;
+
+            fetch('/scan-url', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url: url })
+            })
+            .then(response => response.json())
+            .then(data => {
+                displayResults(data);
+                document.getElementById('resultsSection').style.display = 'block';
+                
+                // Reset button
+                document.getElementById('scanText').textContent = 'Scan URL';
+                document.getElementById('scanSpinner').classList.add('d-none');
+                document.getElementById('scanBtn').disabled = false;
+                
+                // Scroll to results
+                document.getElementById('resultsSection').scrollIntoView({ behavior: 'smooth' });
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error scanning URL. Please try again.');
+                
+                // Reset button
+                document.getElementById('scanText').textContent = 'Scan URL';
+                document.getElementById('scanSpinner').classList.add('d-none');
+                document.getElementById('scanBtn').disabled = false;
+            });
+        }
+
+        function displayResults(data) {
+            // Risk Score
+            const riskScore = data.risk_score || 0;
+            const riskLevel = data.risk_level || 'Unknown';
+            
+            document.getElementById('riskScore').textContent = riskScore;
+            document.getElementById('riskLevel').textContent = riskLevel;
+            document.getElementById('riskBar').style.width = riskScore + '%';
+            
+            // Color code based on risk
+            const riskHeader = document.getElementById('riskHeader');
+            const riskBar = document.getElementById('riskBar');
+            
+            if (riskScore >= 70) {
+                riskHeader.className = 'card-header bg-danger text-white';
+                riskBar.className = 'progress-bar bg-danger';
+            } else if (riskScore >= 50) {
+                riskHeader.className = 'card-header bg-warning text-dark';
+                riskBar.className = 'progress-bar bg-warning';
+            } else if (riskScore >= 30) {
+                riskHeader.className = 'card-header bg-info text-white';
+                riskBar.className = 'progress-bar bg-info';
+            } else {
+                riskHeader.className = 'card-header bg-success text-white';
+                riskBar.className = 'progress-bar bg-success';
+            }
+
+            // URL Details
+            document.getElementById('urlFull').textContent = data.url;
+            document.getElementById('urlDomain').textContent = data.parsed_domain;
+            document.getElementById('urlHttps').innerHTML = data.is_https ? 
+                '<span class="badge bg-success">Yes ✓</span>' : 
+                '<span class="badge bg-danger">No ✗</span>';
+            document.getElementById('urlShortened').innerHTML = data.is_shortened ? 
+                '<span class="badge bg-warning">Yes ⚠️</span>' : 
+                '<span class="badge bg-success">No</span>';
+            document.getElementById('urlDomainAge').textContent = data.domain_age_days + ' days';
+            document.getElementById('urlRedirects').textContent = data.redirect_chain.length > 0 ? 
+                data.redirect_chain.join(' → ') : 'None detected';
+
+            // Indicators
+            displayIndicators(data.indicators);
+
+            // Defense recommendations
+            if (data.defense_recommendations) {
+                displayList('immediateActionsList', data.defense_recommendations.immediate_actions);
+                displayList('preventionMeasuresList', data.defense_recommendations.prevention_measures);
+            }
+
+            // Create risk chart
+            createRiskChart(riskScore);
+        }
+
+        function displayIndicators(indicators) {
+            const container = document.getElementById('indicatorsList');
+            container.innerHTML = '';
+            
+            if (!indicators || indicators.length === 0) {
+                container.innerHTML = '<p class="text-muted">No indicators found</p>';
+                return;
+            }
+
+            indicators.forEach(indicator => {
+                const severityClass = {
+                    'CRITICAL': 'danger',
+                    'HIGH': 'warning',
+                    'MEDIUM': 'info',
+                    'LOW': 'secondary',
+                    'INFO': 'light'
+                }[indicator.severity] || 'secondary';
+
+                const html = `
+                    <div class="alert alert-${severityClass} mb-2">
+                        <strong>${indicator.type}</strong> 
+                        <span class="badge bg-${severityClass}">${indicator.severity}</span>
+                        <br>${indicator.description}
+                        <br><small class="text-muted">Risk Points: +${indicator.risk_points}</small>
+                    </div>
+                `;
+                container.innerHTML += html;
+            });
+        }
+
+        function displayList(elementId, items) {
+            const list = document.getElementById(elementId);
+            list.innerHTML = '';
+            
+            if (!items || items.length === 0) {
+                list.innerHTML = '<li class="text-muted">No items</li>';
+                return;
+            }
+
+            items.forEach(item => {
+                const li = document.createElement('li');
+                li.textContent = item;
+                list.appendChild(li);
+            });
+        }
+
+        function createRiskChart(riskScore) {
+            const ctx = document.getElementById('riskChart');
+            
+            // Destroy previous chart if exists
+            if (riskChart) {
+                riskChart.destroy();
+            }
+
+            const safeScore = 100 - riskScore;
+            
+            riskChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Risk', 'Safe'],
+                    datasets: [{
+                        data: [riskScore, safeScore],
+                        backgroundColor: [
+                            riskScore >= 70 ? '#dc3545' : riskScore >= 50 ? '#ffc107' : '#17a2b8',
+                            '#28a745'
+                        ],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>

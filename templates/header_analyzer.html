@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email Header Analyzer - PhishLab</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/"><strong>🎣 PhishLab</strong></a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link" href="/">Home</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/simulate">Simulate</a></li>
+                    <li class="nav-item"><a class="nav-link active" href="/header-analyzer">Header Analyzer</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/url-scanner">URL Scanner</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/login-detector">Login Detector</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/awareness">Awareness</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Content -->
+    <div class="container my-5">
+        <h1 class="mb-4">🔍 Email Header Analyzer</h1>
+        
+        <div class="alert alert-info">
+            <strong>ℹ️ How to use:</strong> Copy the full email header from a suspicious email and paste it below. 
+            We'll analyze authentication records (SPF, DKIM, DMARC) and detect spoofing indicators.
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Paste Email Header</h5>
+            </div>
+            <div class="card-body">
+                <textarea id="headerInput" class="form-control" rows="10" 
+                    placeholder="Paste full email header here...&#10;&#10;Example:&#10;From: sender@example.com&#10;To: recipient@example.com&#10;Subject: Test Email&#10;Return-Path: <return@example.com>&#10;Received: from mail.example.com..."></textarea>
+                <button id="analyzeBtn" class="btn btn-primary mt-3" onclick="analyzeHeader()">
+                    <span id="analyzeText">Analyze Header</span>
+                    <span id="analyzeSpinner" class="spinner-border spinner-border-sm d-none" role="status"></span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Results Section -->
+        <div id="resultsSection" style="display: none;">
+            <!-- Risk Score Card -->
+            <div class="card mb-4">
+                <div class="card-header text-white" id="riskHeader">
+                    <h5 class="mb-0">⚠️ Risk Assessment</h5>
+                </div>
+                <div class="card-body text-center">
+                    <h2 id="riskScore" class="display-3 mb-3">0</h2>
+                    <h4 id="riskLevel" class="mb-3">Analyzing...</h4>
+                    <div class="progress" style="height: 30px;">
+                        <div id="riskBar" class="progress-bar" role="progressbar" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Authentication Results -->
+            <div class="card mb-4">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0">🔐 Email Authentication</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 text-center mb-3">
+                            <h6>SPF (Sender Policy Framework)</h6>
+                            <span id="spfBadge" class="badge bg-secondary">Unknown</span>
+                            <p class="small text-muted mt-2">Verifies sender's IP is authorized</p>
+                        </div>
+                        <div class="col-md-4 text-center mb-3">
+                            <h6>DKIM (DomainKeys)</h6>
+                            <span id="dkimBadge" class="badge bg-secondary">Unknown</span>
+                            <p class="small text-muted mt-2">Verifies email wasn't altered</p>
+                        </div>
+                        <div class="col-md-4 text-center mb-3">
+                            <h6>DMARC (Policy)</h6>
+                            <span id="dmarcBadge" class="badge bg-secondary">Unknown</span>
+                            <p class="small text-muted mt-2">Enforces authentication policies</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Header Details -->
+            <div class="card mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">📋 Header Details</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>From Address:</strong> <code id="fromAddress"></code></p>
+                    <p><strong>Return Path:</strong> <code id="returnPath"></code></p>
+                    <p><strong>Received IPs:</strong> <code id="receivedIPs"></code></p>
+                </div>
+            </div>
+
+            <!-- Indicators -->
+            <div class="card mb-4">
+                <div class="card-header bg-warning">
+                    <h5 class="mb-0">🚩 Detected Indicators</h5>
+                </div>
+                <div class="card-body">
+                    <div id="indicatorsList"></div>
+                </div>
+            </div>
+
+            <!-- Defense Recommendations -->
+            <div class="card mb-4">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">🛡️ Defense Recommendations</h5>
+                </div>
+                <div class="card-body">
+                    <div class="accordion" id="defenseAccordion">
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#immediateActions">
+                                    Immediate Actions
+                                </button>
+                            </h2>
+                            <div id="immediateActions" class="accordion-collapse collapse show" data-bs-parent="#defenseAccordion">
+                                <div class="accordion-body">
+                                    <ul id="immediateActionsList"></ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#preventionMeasures">
+                                    Prevention Measures
+                                </button>
+                            </h2>
+                            <div id="preventionMeasures" class="accordion-collapse collapse" data-bs-parent="#defenseAccordion">
+                                <div class="accordion-body">
+                                    <ul id="preventionMeasuresList"></ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-white py-4 mt-5">
+        <div class="container text-center">
+            <p class="mb-0">PhishLab - Educational Cybersecurity Framework © 2026</p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function analyzeHeader() {
+            const headerText = document.getElementById('headerInput').value.trim();
+            
+            if (!headerText) {
+                alert('Please paste an email header to analyze');
+                return;
+            }
+
+            // Show loading state
+            document.getElementById('analyzeText').textContent = 'Analyzing...';
+            document.getElementById('analyzeSpinner').classList.remove('d-none');
+            document.getElementById('analyzeBtn').disabled = true;
+
+            fetch('/analyze-header', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ header: headerText })
+            })
+            .then(response => response.json())
+            .then(data => {
+                displayResults(data);
+                document.getElementById('resultsSection').style.display = 'block';
+                
+                // Reset button
+                document.getElementById('analyzeText').textContent = 'Analyze Header';
+                document.getElementById('analyzeSpinner').classList.add('d-none');
+                document.getElementById('analyzeBtn').disabled = false;
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error analyzing header. Please try again.');
+                
+                // Reset button
+                document.getElementById('analyzeText').textContent = 'Analyze Header';
+                document.getElementById('analyzeSpinner').classList.add('d-none');
+                document.getElementById('analyzeBtn').disabled = false;
+            });
+        }
+
+        function displayResults(data) {
+            // Risk Score
+            const riskScore = data.risk_score || 0;
+            const riskLevel = data.risk_level || 'Unknown';
+            
+            document.getElementById('riskScore').textContent = riskScore;
+            document.getElementById('riskLevel').textContent = riskLevel;
+            document.getElementById('riskBar').style.width = riskScore + '%';
+            
+            // Color code based on risk
+            const riskHeader = document.getElementById('riskHeader');
+            const riskBar = document.getElementById('riskBar');
+            
+            if (riskScore >= 70) {
+                riskHeader.className = 'card-header bg-danger text-white';
+                riskBar.className = 'progress-bar bg-danger';
+            } else if (riskScore >= 50) {
+                riskHeader.className = 'card-header bg-warning text-dark';
+                riskBar.className = 'progress-bar bg-warning';
+            } else if (riskScore >= 30) {
+                riskHeader.className = 'card-header bg-info text-white';
+                riskBar.className = 'progress-bar bg-info';
+            } else {
+                riskHeader.className = 'card-header bg-success text-white';
+                riskBar.className = 'progress-bar bg-success';
+            }
+
+            // Authentication badges
+            updateBadge('spfBadge', data.spf_result);
+            updateBadge('dkimBadge', data.dkim_result);
+            updateBadge('dmarcBadge', data.dmarc_result);
+
+            // Header details
+            document.getElementById('fromAddress').textContent = data.from_address || 'Not found';
+            document.getElementById('returnPath').textContent = data.return_path || 'Not found';
+            document.getElementById('receivedIPs').textContent = data.received_ips.join(', ') || 'None';
+
+            // Indicators
+            displayIndicators(data.indicators);
+
+            // Defense recommendations
+            if (data.defense_recommendations) {
+                displayList('immediateActionsList', data.defense_recommendations.immediate_actions);
+                displayList('preventionMeasuresList', data.defense_recommendations.prevention_measures);
+            }
+        }
+
+        function updateBadge(elementId, result) {
+            const badge = document.getElementById(elementId);
+            badge.textContent = result.toUpperCase();
+            
+            if (result === 'pass') {
+                badge.className = 'badge bg-success';
+            } else if (result === 'fail' || result === 'softfail' || result === 'hardfail') {
+                badge.className = 'badge bg-danger';
+            } else {
+                badge.className = 'badge bg-secondary';
+            }
+        }
+
+        function displayIndicators(indicators) {
+            const container = document.getElementById('indicatorsList');
+            container.innerHTML = '';
+            
+            if (!indicators || indicators.length === 0) {
+                container.innerHTML = '<p class="text-muted">No indicators found</p>';
+                return;
+            }
+
+            indicators.forEach(indicator => {
+                const severityClass = {
+                    'CRITICAL': 'danger',
+                    'HIGH': 'warning',
+                    'MEDIUM': 'info',
+                    'LOW': 'secondary',
+                    'INFO': 'light'
+                }[indicator.severity] || 'secondary';
+
+                const html = `
+                    <div class="alert alert-${severityClass} mb-2">
+                        <strong>${indicator.type}</strong> 
+                        <span class="badge bg-${severityClass}">${indicator.severity}</span>
+                        <br>${indicator.description}
+                        <br><small class="text-muted">Risk Points: +${indicator.risk_points}</small>
+                    </div>
+                `;
+                container.innerHTML += html;
+            });
+        }
+
+        function displayList(elementId, items) {
+            const list = document.getElementById(elementId);
+            list.innerHTML = '';
+            
+            if (!items || items.length === 0) {
+                list.innerHTML = '<li class="text-muted">No items</li>';
+                return;
+            }
+
+            items.forEach(item => {
+                const li = document.createElement('li');
+                li.textContent = item;
+                list.appendChild(li);
+            });
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phishing Simulation - PhishLab</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/"><strong>🎣 PhishLab</strong></a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link" href="/">Home</a></li>
+                    <li class="nav-item"><a class="nav-link active" href="/simulate">Simulate</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/header-analyzer">Header Analyzer</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/url-scanner">URL Scanner</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/login-detector">Login Detector</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/awareness">Awareness</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Content -->
+    <div class="container my-5">
+        <h1 class="mb-4">📧 Phishing Email Simulation</h1>
+        
+        <div class="alert alert-info">
+            <strong>ℹ️ Educational Purpose:</strong> These are SIMULATED phishing emails for training purposes. 
+            They demonstrate real-world social engineering tactics used by attackers.
+        </div>
+
+        <div class="row">
+            <div class="col-lg-4 mb-4">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">Select Phishing Template</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="list-group" id="templateList">
+                            {% for template in templates %}
+                            <button type="button" 
+                                    class="list-group-item list-group-item-action" 
+                                    data-template-id="{{ template.id }}"
+                                    onclick="loadTemplate({{ template.id }})">
+                                <strong>{{ template.name }}</strong>
+                                <br>
+                                <small class="text-muted">Tactic: {{ template.tactic }}</small>
+                            </button>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-8">
+                <div id="emailDisplay" class="card" style="display: none;">
+                    <div class="card-header bg-dark text-white">
+                        <h5 class="mb-0">📬 Simulated Email</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="email-header mb-3 p-3 bg-light rounded">
+                            <p class="mb-1"><strong>From:</strong> <span id="emailFrom"></span></p>
+                            <p class="mb-0"><strong>Subject:</strong> <span id="emailSubject"></span></p>
+                        </div>
+                        <div class="email-body p-3 border rounded bg-white">
+                            <pre id="emailBody" style="white-space: pre-wrap; font-family: Arial, sans-serif;"></pre>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="analysisDisplay" class="mt-4" style="display: none;">
+                    <div class="card border-danger">
+                        <div class="card-header bg-danger text-white">
+                            <h5 class="mb-0">🚩 Red Flags Analysis</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="alert alert-warning">
+                                <strong>Social Engineering Tactic:</strong> <span id="tacticUsed"></span>
+                            </div>
+                            <h6 class="text-danger">⚠️ Warning Signs Detected:</h6>
+                            <ul id="redFlagsList" class="list-unstyled"></ul>
+                        </div>
+                    </div>
+
+                    <div class="card mt-4 border-success">
+                        <div class="card-header bg-success text-white">
+                            <h5 class="mb-0">✅ What You Should Do Instead</h5>
+                        </div>
+                        <div class="card-body">
+                            <p id="legitimateAction" class="mb-0"></p>
+                        </div>
+                    </div>
+
+                    <div class="card mt-4">
+                        <div class="card-header bg-info text-white">
+                            <h5 class="mb-0">🎓 Learning Points</h5>
+                        </div>
+                        <div class="card-body">
+                            <ul>
+                                <li><strong>Always verify the sender:</strong> Check email address carefully for typos</li>
+                                <li><strong>Don't trust urgency:</strong> Legitimate companies don't pressure you with deadlines</li>
+                                <li><strong>Hover before clicking:</strong> See where links actually lead</li>
+                                <li><strong>Go directly to source:</strong> Type official URL in browser instead of clicking</li>
+                                <li><strong>Enable MFA:</strong> Multi-factor authentication protects even if password stolen</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-white py-4 mt-5">
+        <div class="container text-center">
+            <p class="mb-0">PhishLab - Educational Cybersecurity Framework © 2026</p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function loadTemplate(templateId) {
+            fetch(`/get-template/${templateId}`)
+                .then(response => response.json())
+                .then(template => {
+                    // Display email
+                    document.getElementById('emailFrom').textContent = template.from;
+                    document.getElementById('emailSubject').textContent = template.subject;
+                    document.getElementById('emailBody').textContent = template.body;
+                    
+                    // Display analysis
+                    document.getElementById('tacticUsed').textContent = template.tactic;
+                    document.getElementById('legitimateAction').textContent = template.legitimate_action;
+                    
+                    // Display red flags
+                    const flagsList = document.getElementById('redFlagsList');
+                    flagsList.innerHTML = '';
+                    template.red_flags.forEach(flag => {
+                        const li = document.createElement('li');
+                        li.className = 'mb-2 p-2 bg-light rounded';
+                        li.innerHTML = `<strong>${flag}</strong>`;
+                        flagsList.appendChild(li);
+                    });
+                    
+                    // Show displays
+                    document.getElementById('emailDisplay').style.display = 'block';
+                    document.getElementById('analysisDisplay').style.display = 'block';
+                    
+                    // Highlight active template
+                    document.querySelectorAll('.list-group-item').forEach(item => {
+                        item.classList.remove('active');
+                    });
+                    event.target.closest('.list-group-item').classList.add('active');
+                })
+                .catch(error => {
+                    console.error('Error loading template:', error);
+                    alert('Error loading template');
+                });
+        }
+    </script>
+</body>
+</html>
