@@ -249,6 +249,41 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
+// ==================== DARK MODE FUNCTIONALITY ====================
+
+const DarkMode = {
+    init: function() {
+        // Check for saved theme preference
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        this.setTheme(savedTheme);
+        
+        // Listen for theme changes from settings
+        document.addEventListener('theme-changed', (e) => {
+            this.setTheme(e.detail.theme);
+        });
+    },
+    
+    setTheme: function(theme) {
+        if (theme === 'dark') {
+            document.body.classList.add('dark-mode');
+        } else {
+            document.body.classList.remove('dark-mode');
+        }
+        localStorage.setItem('theme', theme);
+    },
+    
+    toggle: function() {
+        const currentTheme = localStorage.getItem('theme') || 'light';
+        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        this.setTheme(newTheme);
+    }
+};
+
+// Initialize dark mode on page load
+document.addEventListener('DOMContentLoaded', function() {
+    DarkMode.init();
+});
+
 // Export for use in other scripts
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = PhishLab;

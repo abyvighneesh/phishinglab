@@ -26,6 +26,9 @@
                         <a class="nav-link" href="/simulate">Simulate</a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link" href="/email-scanner">Email Scanner</a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link" href="/header-analyzer">Header Analyzer</a>
                     </li>
                     <li class="nav-item">
@@ -37,6 +40,21 @@
                     <li class="nav-item">
                         <a class="nav-link" href="/awareness">Awareness</a>
                     </li>
+                    {% if current_user.is_authenticated %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="/dashboard">Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/logout">Logout</a>
+                    </li>
+                    {% else %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="/login">Login</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/register">Register</a>
+                    </li>
+                    {% endif %}
                 </ul>
             </div>
         </div>
@@ -111,7 +129,7 @@
                             <p class="card-text">
                                 View simulated phishing emails and learn to identify red flags and social engineering tactics.
                             </p>
-                            <a href="/simulate" class="btn btn-primary">Explore Simulations</a>
+                            <a href="/simulate" class="btn btn-primary" role="button">Explore Simulations</a>
                         </div>
                     </div>
                 </div>
@@ -125,7 +143,7 @@
                             <p class="card-text">
                                 Analyze email headers for SPF, DKIM, DMARC authentication and detect spoofing attempts.
                             </p>
-                            <a href="/header-analyzer" class="btn btn-primary">Analyze Headers</a>
+                            <a href="/header-analyzer" class="btn btn-primary" role="button">Analyze Headers</a>
                         </div>
                     </div>
                 </div>
@@ -139,7 +157,7 @@
                             <p class="card-text">
                                 Scan suspicious URLs for typosquatting, domain age, HTTPS issues, and phishing indicators.
                             </p>
-                            <a href="/url-scanner" class="btn btn-primary">Scan URLs</a>
+                            <a href="/url-scanner" class="btn btn-primary" role="button">Scan URLs</a>
                         </div>
                     </div>
                 </div>
@@ -153,7 +171,7 @@
                             <p class="card-text">
                                 Detect fake login pages by analyzing forms, scripts, SSL certificates, and brand impersonation.
                             </p>
-                            <a href="/login-detector" class="btn btn-primary">Detect Fakes</a>
+                            <a href="/login-detector" class="btn btn-primary" role="button">Detect Fakes</a>
                         </div>
                     </div>
                 </div>
@@ -167,7 +185,7 @@
                             <p class="card-text">
                                 Learn phishing types, best practices, take interactive quizzes, and view real-world examples.
                             </p>
-                            <a href="/awareness" class="btn btn-primary">Learn More</a>
+                            <a href="/awareness" class="btn btn-primary" role="button">Learn More</a>
                         </div>
                     </div>
                 </div>
@@ -181,7 +199,7 @@
                             <p class="card-text">
                                 Get personalized defense recommendations, incident response steps, and security controls.
                             </p>
-                            <a href="/awareness" class="btn btn-primary">View Strategies</a>
+                            <a href="/awareness" class="btn btn-primary" role="button">View Strategies</a>
                         </div>
                     </div>
                 </div>

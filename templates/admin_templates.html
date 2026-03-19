@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Templates - PhishLab Admin</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/"><strong>🎣 PhishLab Admin</strong></a>
+            <div class="collapse navbar-collapse">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link" href="/admin">Dashboard</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/admin/users">Users</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/admin/templates">Templates</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/logout">Logout</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container my-5">
+        <h1 class="mb-4">📧 Manage Phishing Templates</h1>
+
+        <!-- Add Template Form -->
+        <div class="card mb-4">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">➕ Add New Template</h5>
+            </div>
+            <div class="card-body">
+                <form id="add-template-form">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <input type="text" class="form-control mb-3" id="name" placeholder="Template Name" required>
+                        </div>
+                        <div class="col-md-6">
+                            <input type="text" class="form-control mb-3" id="attack_type" placeholder="Attack Type" required>
+                        </div>
+                    </div>
+                    <textarea class="form-control mb-3" id="description" placeholder="Description" rows="2"></textarea>
+                    <textarea class="form-control mb-3" id="email_content" placeholder="Email Content" rows="4" required></textarea>
+                    <button type="submit" class="btn btn-success">Add Template</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Templates List -->
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Current Templates</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Type</th>
+                                <th>Description</th>
+                                <th>Status</th>
+                                <th>Added</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for template in templates %}
+                            <tr>
+                                <td>{{ template.name }}</td>
+                                <td>{{ template.attack_type }}</td>
+                                <td>{{ template.description[:50] }}...</td>
+                                <td>
+                                    {% if template.is_active %}
+                                        <span class="badge bg-success">Active</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Inactive</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ template.created_at.strftime('%Y-%m-%d') }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.getElementById('add-template-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const data = {
+                name: document.getElementById('name').value,
+                description: document.getElementById('description').value,
+                email_content: document.getElementById('email_content').value,
+                attack_type: document.getElementById('attack_type').value,
+                red_flags: []
+            };
+            
+            try {
+                const response = await fetch('/admin/api/add-template', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(data)
+                });
+                
+                if (response.ok) {
+                    alert('Template added successfully!');
+                    location.reload();
+                }
+            } catch (error) {
+                alert('Error adding template');
+            }
+        });
+    </script>
+</body>
+</html>

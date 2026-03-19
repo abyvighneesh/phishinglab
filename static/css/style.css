@@ -194,11 +194,29 @@ body {
 /* Buttons */
 .btn {
     transition: all 0.3s ease;
+    cursor: pointer;
+    pointer-events: auto;
+    text-decoration: none;
+    display: inline-block;
 }
 
 .btn:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    text-decoration: none;
+}
+
+.btn-primary {
+    pointer-events: auto !important;
+    cursor: pointer !important;
+}
+
+.btn-primary:hover {
+    text-decoration: none;
+}
+
+a.btn {
+    pointer-events: auto;
 }
 
 /* Card Headers */
@@ -378,4 +396,166 @@ canvas {
     .no-print {
         display: none !important;
     }
+}
+
+/* ==================== DARK MODE ====================*/
+
+/* Dark Mode Toggle */
+body.dark-mode {
+    background-color: #1a1a1a !important;
+    color: #e0e0e0;
+}
+
+body.dark-mode .navbar-dark {
+    background-color: #0d0d0d !important;
+}
+
+body.dark-mode .card {
+    background-color: #2d2d2d;
+    color: #e0e0e0;
+    border-color: #404040;
+}
+
+body.dark-mode .card-header {
+    background-color: #404040 !important;
+    color: #e0e0e0;
+    border-color: #505050;
+}
+
+body.dark-mode .form-control,
+body.dark-mode .form-select {
+    background-color: #2d2d2d;
+    color: #e0e0e0;
+    border-color: #404040;
+}
+
+body.dark-mode .form-control:focus,
+body.dark-mode .form-select:focus {
+    background-color: #3a3a3a;
+    color: #e0e0e0;
+    border-color: #0d6efd;
+}
+
+body.dark-mode .table {
+    color: #e0e0e0;
+    border-color: #404040;
+}
+
+body.dark-mode .table-striped>tbody>tr:nth-of-type(odd) {
+    background-color: #252525;
+}
+
+body.dark-mode .table-striped>tbody>tr:nth-of-type(even) {
+    background-color: #2d2d2d;
+}
+
+body.dark-mode .list-group-item {
+    background-color: #2d2d2d;
+    color: #e0e0e0;
+    border-color: #404040;
+}
+
+body.dark-mode .breadcrumb {
+    background-color: #2d2d2d;
+    border-color: #404040;
+}
+
+body.dark-mode .hero-section {
+    background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 50%, #16213e 100%);
+}
+
+body.dark-mode .feature-card {
+    background-color: #2d2d2d;
+    border-color: #404040;
+}
+
+body.dark-mode .phishing-type-box {
+    background-color: #2d2d2d;
+    border-color: #404040;
+    color: #e0e0e0;
+}
+
+body.dark-mode .quiz-question {
+    background-color: #2d2d2d;
+    border-color: #404040;
+    color: #e0e0e0;
+}
+
+body.dark-mode .stat-box {
+    background-color: #2d2d2d;
+    border-color: #404040;
+    color: #e0e0e0;
+}
+
+body.dark-mode .stat-box:hover {
+    background-color: #3a3a3a;
+}
+
+body.dark-mode code {
+    background-color: #2d2d2d;
+    color: #ff79c6;
+    border-color: #404040;
+}
+
+body.dark-mode .alert {
+    border-color: #404040;
+}
+
+body.dark-mode .alert-info {
+    background-color: #1c3a47;
+    color: #a8d8ff;
+    border-color: #0d6efd;
+}
+
+body.dark-mode .alert-success {
+    background-color: #1c3a2d;
+    color: #a8ffb0;
+    border-color: #28a745;
+}
+
+body.dark-mode .alert-warning {
+    background-color: #3a3a1c;
+    color: #ffffa8;
+    border-color: #ffc107;
+}
+
+body.dark-mode .alert-danger {
+    background-color: #3a1c1c;
+    color: #ffa8a8;
+    border-color: #dc3545;
+}
+
+body.dark-mode .dropdown-menu {
+    background-color: #2d2d2d;
+    border-color: #404040;
+}
+
+body.dark-mode .dropdown-item {
+    color: #e0e0e0;
+}
+
+body.dark-mode .dropdown-item:hover,
+body.dark-mode .dropdown-item:focus {
+    background-color: #3a3a3a;
+    color: #fff;
+}
+
+body.dark-mode .modal-content {
+    background-color: #2d2d2d;
+    color: #e0e0e0;
+    border-color: #404040;
+}
+
+body.dark-mode .modal-header {
+    border-color: #404040;
+}
+
+body.dark-mode .modal-footer {
+    border-color: #404040;
+}
+
+body.dark-mode input::-webkit-outer-spin-button,
+body.dark-mode input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
 }
