@@ -16,7 +16,55 @@
         }
         .register-card {
             width: 100%;
-            max-width: 400px;
+            max-width: 450px;
+        }
+        .password-strength {
+            margin-top: 0.5rem;
+        }
+        .strength-meter {
+            height: 8px;
+            background-color: #333;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 0.5rem;
+        }
+        .strength-bar {
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s ease, background-color 0.3s ease;
+        }
+        .requirement {
+            font-size: 0.85rem;
+            margin: 0.3rem 0;
+            padding: 0.3rem 0.5rem;
+        }
+        .requirement.met {
+            color: #28a745;
+        }
+        .requirement.unmet {
+            color: #dc3545;
+        }
+        .requirement.unmet::before {
+            content: "✗ ";
+        }
+        .requirement.met::before {
+            content: "✓ ";
+        }
+        .password-input-wrapper {
+            position: relative;
+        }
+        .toggle-password {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            background: none;
+            border: none;
+            color: #aaa;
+        }
+        .toggle-password:hover {
+            color: #fff;
         }
     </style>
 </head>
@@ -33,6 +81,7 @@
                         <div class="mb-3">
                             <label class="form-label">Username</label>
                             <input type="text" class="form-control" id="username" required>
+                            <small class="text-muted">3-20 alphanumeric characters</small>
                         </div>
                         
                         <div class="mb-3">
@@ -42,7 +91,25 @@
                         
                         <div class="mb-3">
                             <label class="form-label">Password</label>
-                            <input type="password" class="form-control" id="password" required>
+                            <div class="password-input-wrapper">
+                                <input type="password" class="form-control" id="password" required>
+                                <button type="button" class="toggle-password" onclick="togglePassword()">👁️</button>
+                            </div>
+                            
+                            <div class="password-strength">
+                                <div class="strength-meter">
+                                    <div class="strength-bar" id="strengthBar"></div>
+                                </div>
+                                <small id="strengthText" class="text-muted">Enter password</small>
+                                
+                                <div class="requirements mt-2">
+                                    <div class="requirement unmet" id="req-length">At least 8 characters</div>
+                                    <div class="requirement unmet" id="req-upper">Uppercase letter (A-Z)</div>
+                                    <div class="requirement unmet" id="req-lower">Lowercase letter (a-z)</div>
+                                    <div class="requirement unmet" id="req-number">Number (0-9)</div>
+                                    <div class="requirement unmet" id="req-special">Special character (!@#$%^&*)</div>
+                                </div>
+                            </div>
                         </div>
                         
                         <button type="submit" class="btn btn-primary w-100">Register</button>
@@ -61,34 +128,170 @@
     </div>
 
     <script>
-        document.getElementById('register-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
+        const passwordInput = document.getElementById('password');
+        const strengthBar = document.getElementById('strengthBar');
+        const strengthText = document.getElementById('strengthText');
+        const registerForm = document.getElementById('register-form');
+        const errorContainer = document.getElementById('error-message');
+
+        // Password strength checking
+        passwordInput.addEventListener('input', function() {
+            const password = this.value;
+            checkPasswordStrength(password);
+        });
+
+        function checkPasswordStrength(password) {
+            const requirements = {
+                length: password.length >= 8,
+                upper: /[A-Z]/.test(password),
+                lower: /[a-z]/.test(password),
+                number: /\d/.test(password),
+                special: /[!@#$%^&*()_+\-=\[\]{}|;:,.<>?]/.test(password)
+            };
+
+            // Update requirement indicators
+            updateRequirement('req-length', requirements.length);
+            updateRequirement('req-upper', requirements.upper);
+            updateRequirement('req-lower', requirements.lower);
+            updateRequirement('req-number', requirements.number);
+            updateRequirement('req-special', requirements.special);
+
+            // Calculate strength score
+            let score = 0;
+            if (password.length >= 8) score += 10;
+            if (password.length >= 12) score += 10;
+            if (password.length >= 16) score += 10;
+            if (requirements.lower) score += 15;
+            if (requirements.upper) score += 15;
+            if (requirements.number) score += 15;
+            if (requirements.special) score += 20;
+
+            // Update strength bar
+            strengthBar.style.width = score + '%';
             
-            const username = document.getElementById('username').value;
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-            
-            try {
-                const response = await fetch('/register', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({username, email, password})
-                });
-                
-                const data = await response.json();
-                
-                if (response.ok) {
-                    window.location.href = data.redirect;
-                } else {
-                    document.getElementById('error-message').innerHTML = 
-                        `<div class="alert alert-danger">${data.error}</div>`;
-                }
-            } catch (error) {
-                document.getElementById('error-message').innerHTML = 
-                    `<div class="alert alert-danger">Error registering</div>`;
+            if (score >= 80) {
+                strengthBar.style.backgroundColor = '#28a745';
+                strengthText.textContent = 'Very Strong ✓';
+                strengthText.className = 'text-success';
+            } else if (score >= 60) {
+                strengthBar.style.backgroundColor = '#ffc107';
+                strengthText.textContent = 'Strong ✓';
+                strengthText.className = 'text-warning';
+            } else if (score >= 40) {
+                strengthBar.style.backgroundColor = '#fd7e14';
+                strengthText.textContent = 'Fair';
+                strengthText.className = 'text-warning';
+            } else if (score > 0) {
+                strengthBar.style.backgroundColor = '#dc3545';
+                strengthText.textContent = 'Weak';
+                strengthText.className = 'text-danger';
+            } else {
+                strengthBar.style.width = '0%';
+                strengthText.textContent = 'Enter password';
+                strengthText.className = 'text-muted';
             }
+        }
+
+        function updateRequirement(id, met) {
+            const elem = document.getElementById(id);
+            if (met) {
+                elem.classList.remove('unmet');
+                elem.classList.add('met');
+            } else {
+                elem.classList.remove('met');
+                elem.classList.add('unmet');
+            }
+        }
+
+        function togglePassword() {
+            const type = passwordInput.type === 'password' ? 'text' : 'password';
+            passwordInput.type = type;
+        }
+
+        // Form submission
+        document.addEventListener('DOMContentLoaded', function() {
+            registerForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                const username = document.getElementById('username').value.trim();
+                const email = document.getElementById('email').value.trim();
+                const password = document.getElementById('password').value.trim();
+                
+                // Validate inputs
+                if (!username || !email || !password) {
+                    errorContainer.innerHTML = 
+                        '<div class="alert alert-warning">Please fill in all fields</div>';
+                    return;
+                }
+                
+                if (username.length < 3) {
+                    errorContainer.innerHTML = 
+                        '<div class="alert alert-warning">Username must be at least 3 characters</div>';
+                    return;
+                }
+                
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(email)) {
+                    errorContainer.innerHTML = 
+                        '<div class="alert alert-warning">Please enter a valid email address</div>';
+                    return;
+                }
+                
+                // Check all requirements are met for password
+                const allMet = document.querySelectorAll('.requirement.met').length === 5;
+                if (!allMet) {
+                    errorContainer.innerHTML = 
+                        '<div class="alert alert-warning">Password does not meet all requirements</div>';
+                    return;
+                }
+                
+                // Disable submit button during request
+                const submitBtn = registerForm.querySelector('button[type="submit"]');
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = 'Registering...';
+                
+                try {
+                    const response = await fetch('/register', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({username, email, password})
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (response.ok) {
+                        errorContainer.innerHTML = 
+                            `<div class="alert alert-success" role="alert">
+                                <strong>Registration Successful!</strong><br>
+                                A verification email has been sent to ${email}.<br>
+                                Please check your inbox and click the verification link to activate your account.<br>
+                                Redirecting to login in 3 seconds...
+                            </div>`;
+                        setTimeout(() => {
+                            window.location.href = data.redirect;
+                        }, 3000);
+                    } else {
+                        errorContainer.innerHTML = 
+                            `<div class="alert alert-danger" role="alert">
+                                <strong>Registration Failed!</strong><br>
+                                ${data.error || 'An error occurred'}
+                            </div>`;
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = 'Register';
+                    }
+                } catch (error) {
+                    console.error('Registration error:', error);
+                    errorContainer.innerHTML = 
+                        `<div class="alert alert-danger" role="alert">
+                            <strong>Error!</strong><br>
+                            Unable to connect to server. Please try again.
+                        </div>`;
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = 'Register';
+                }
+            });
         });
     </script>
 </body>

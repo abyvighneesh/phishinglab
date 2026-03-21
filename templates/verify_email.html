@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email Verification - PhishLab</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        .verification-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 50%, #16213e 100%);
+        }
+        .verification-card {
+            width: 100%;
+            max-width: 500px;
+        }
+        .success-icon {
+            font-size: 4rem;
+            color: #28a745;
+            margin-bottom: 1rem;
+        }
+        .error-icon {
+            font-size: 4rem;
+            color: #dc3545;
+            margin-bottom: 1rem;
+        }
+        .text-center-content {
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="verification-container">
+        <div class="verification-card">
+            <div class="card shadow-lg">
+                <div class="card-body p-5 text-center-content">
+                    {% if success %}
+                        <!-- Success State -->
+                        <div class="success-icon">✓</div>
+                        <h2 class="mb-3 text-success">Email Verified!</h2>
+                        <p class="lead mb-4">
+                            Your email address has been successfully verified. You can now log in to your PhishLab account.
+                        </p>
+                        <a href="/login" class="btn btn-success btn-lg w-100 mb-3">
+                            🔐 Login to PhishLab
+                        </a>
+                        <p class="text-muted">
+                            <a href="/">Back to Home</a>
+                        </p>
+                    {% else %}
+                        <!-- Error/Failed State -->
+                        <div class="error-icon">✗</div>
+                        <h2 class="mb-3 text-danger">Verification Failed</h2>
+                        <p class="lead mb-4">
+                            {{ message }}
+                        </p>
+                        
+                        {% if 'expired' in message.lower() %}
+                            <p class="text-muted mb-4">
+                                Your verification link has expired. You can request a new one by logging in or registering again.
+                            </p>
+                            <a href="/register" class="btn btn-primary btn-lg w-100 mb-2">
+                                📝 Register Again
+                            </a>
+                            <a href="/login" class="btn btn-outline-primary btn-lg w-100 mb-3">
+                                🔐 Login
+                            </a>
+                        {% else %}
+                            <p class="text-muted mb-4">
+                                The verification link is invalid or has already been used. Please try registering again.
+                            </p>
+                            <a href="/register" class="btn btn-primary btn-lg w-100 mb-2">
+                                📝 Register Again
+                            </a>
+                            <a href="/login" class="btn btn-outline-primary btn-lg w-100 mb-3">
+                                🔐 Login
+                            </a>
+                        {% endif %}
+                        
+                        <p class="text-muted">
+                            <a href="/">Back to Home</a>
+                        </p>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="mt-4 p-4 bg-dark rounded text-muted text-center" style="border: 1px solid #444;">
+                <small>
+                    <strong>PhishLab Security Notice:</strong><br>
+                    Email verification helps protect your account from unauthorized access. 
+                    Always verify emails from trusted sources.
+                </small>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

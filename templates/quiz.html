@@ -1,0 +1,750 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row mb-4">
+        <div class="col-lg-12">
+            <h1 class="mb-2">🎯 Interactive Quiz & Puzzles</h1>
+            <p class="text-muted">Test your phishing detection knowledge with interactive quizzes and puzzles</p>
+        </div>
+    </div>
+
+    <!-- Quiz Tabs -->
+    <ul class="nav nav-tabs mb-4" role="tablist">
+        <li class="nav-item">
+            <a class="nav-link active" data-bs-toggle="tab" href="#quizzes">📝 Quiz Questions</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" data-bs-toggle="tab" href="#puzzles">🧩 Puzzle Challenges</a>
+        </li>
+    </ul>
+
+    <!-- Tab Content -->
+    <div class="tab-content">
+        <!-- Quiz Questions Tab -->
+        <div id="quizzes" class="tab-pane fade show active">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">📚 Select a Module to Quiz</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-4">
+                        <div class="col-md-12">
+                            <label class="form-label"><strong>Choose a Learning Module:</strong></label>
+                            <select id="moduleSelect" class="form-select" onchange="loadQuizModule()">
+                                <option value="">-- Select Module --</option>
+                                <option value="1">Phishing Fundamentals</option>
+                                <option value="2">Email Header Analysis</option>
+                                <option value="3">URL Analysis and Safety</option>
+                                <option value="4">Social Engineering Tactics</option>
+                                <option value="5">Attachment Security</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Quiz Container -->
+                    <div id="quizContainer" style="display: none;">
+                        <div id="questionsDisplay"></div>
+                        <div class="mt-4">
+                            <button class="btn btn-success btn-lg" onclick="submitQuiz()">
+                                ✅ Submit Quiz
+                            </button>
+                            <button class="btn btn-secondary btn-lg ms-2" onclick="resetQuiz()">
+                                🔄 Reset
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Quiz Results -->
+                    <div id="resultsContainer" style="display: none;">
+                        <div class="alert alert-success">
+                            <h4>✅ Quiz Complete!</h4>
+                            <div class="row text-center mt-4">
+                                <div class="col-md-4">
+                                    <h3 id="correctDisplay">0/0</h3>
+                                    <p class="text-muted">Correct Answers</p>
+                                </div>
+                                <div class="col-md-4">
+                                    <h3 id="scoreDisplay">0%</h3>
+                                    <p class="text-muted">Score</p>
+                                </div>
+                                <div class="col-md-4">
+                                    <h3 id="pointsDisplay">0</h3>
+                                    <p class="text-muted">Points Earned</p>
+                                </div>
+                            </div>
+                            <div id="reviewContainer" class="mt-5"></div>
+                            <button class="btn btn-primary mt-4" onclick="location.reload()">
+                                Take Another Quiz
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Puzzle Challenges Tab -->
+        <div id="puzzles" class="tab-pane fade">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">🎯 Interactive Phishing Detection Puzzles</h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted mb-4">Analyze each scenario and determine if it's a phishing attack, dangerous URL, legitimate email, or safe attachment.</p>
+                    <div id="puzzlesContainer"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Quiz Module Variables
+let currentModule = null;
+let currentQuestions = [];
+
+// Quiz Data - 5 questions per module
+const quizzes = {
+    1: [
+        {id: 1, question: 'What is the primary goal of a phishing attack?', options: ['Crash systems', 'Steal information', 'Delete files', 'Slow internet'], correct: 1, points: 10, explanation: 'Phishing aims to trick users into revealing sensitive information like passwords or credit card numbers.'},
+        {id: 2, question: 'Which is an example of spear phishing?', options: ['Mass email to all users', 'Targeted personal email with details', 'CEO attack only', 'Text message spam'], correct: 1, points: 10, explanation: 'Spear phishing targets specific individuals with personalized information.'},
+        {id: 3, question: 'True or False: Legitimate banks ask for passwords via email', options: ['True', 'False'], correct: 1, points: 5, explanation: 'False. Legitimate companies never request sensitive data like passwords via email.'},
+        {id: 4, question: 'What does phishing primarily exploit?', options: ['Code vulnerabilities', 'Human psychology and trust', 'Server bugs', 'Network protocols'], correct: 1, points: 10, explanation: 'Phishing exploits human psychology and the tendency to trust familiar-looking communications.'},
+        {id: 5, question: 'Which is NOT a phishing method?', options: ['Email phishing', 'Spear phishing', 'Legitimate verification', 'Vishing'], correct: 2, points: 10, explanation: 'Legitimate verification is security practice, not a phishing attack.'}
+    ],
+    2: [
+        {id: 6, question: 'Which email header field is most reliable for identifying the sender?', options: ['From field', 'Return-Path field', 'Subject field', 'Date field'], correct: 1, points: 15, explanation: 'Return-Path is more reliable because it indicates where bounced emails go and is harder to spoof.'},
+        {id: 7, question: 'What does SPF stand for in email authentication?', options: ['Sender Protection Framework', 'Sender Policy Framework', 'Security Protocol Framework', 'Server Process Framework'], correct: 1, points: 15, explanation: 'SPF = Sender Policy Framework - an email authentication protocol that verifies the sender.'},
+        {id: 8, question: 'A mismatched From and Return-Path address is always a sign of phishing?', options: ['True', 'False'], correct: 1, points: 10, explanation: 'False. While suspicious, there can be legitimate reasons for differences in email forwarding scenarios.'},
+        {id: 9, question: 'Which protocol verifies the sender\'s digital signature on an email?', options: ['SPF', 'DKIM', 'DMARC', 'SSL'], correct: 1, points: 15, explanation: 'DKIM (DomainKeys Identified Mail) verifies the sender\'s digital signature on the email.'},
+        {id: 10, question: 'What does DMARC primarily help prevent?', options: ['Spam emails', 'Email spoofing', 'Large attachments', 'Malware files'], correct: 1, points: 15, explanation: 'DMARC prevents email spoofing by authenticating that emails come from the stated domain.'}
+    ],
+    3: [
+        {id: 11, question: 'What is typosquatting?', options: ['Fast typing speed', 'Domain name misspellings targeting users', 'Password guessing technique', 'Rapid link clicking'], correct: 1, points: 15, explanation: 'Typosquatting uses misspelled domains (paypa1.com instead of paypal.com) to trick users.'},
+        {id: 12, question: 'Which URL is most likely to be legitimate and safe?', options: ['http://google.com', 'https://google.com', 'http://g0ogle.com', 'http://167.89.34.2'], correct: 1, points: 15, explanation: 'HTTPS with correct spelling and from the official domain is safest.'},
+        {id: 13, question: 'Should you always trust URL shorteners like bit.ly without verification?', options: ['Always trust them', 'Never trust without expanding', 'Sometimes safe', 'Only with VPN'], correct: 1, points: 10, explanation: 'Never blindly trust URL shorteners - always expand them first to see the real destination.'},
+        {id: 14, question: 'What is a red flag in a suspicious URL?', options: ['Standard protocol', 'Unusual characters or encoding', 'File extension only', 'Domain structure'], correct: 1, points: 15, explanation: 'Unusual characters, heavy encoding, and long suspicious parameters are red flags.'},
+        {id: 15, question: 'What protection does HTTPS provide?', options: ['Protection from viruses', 'Encryption of data in transit', 'Complete phishing protection', 'Defense against all attacks'], correct: 1, points: 15, explanation: 'HTTPS encrypts the data traveling between your browser and the server.'}
+    ],
+    4: [
+        {id: 16, question: 'What is the most effective social engineering tactic?', options: ['Physical force only', 'Creating artificial urgency and fear', 'Advanced hacking tools', 'DDoS attacks'], correct: 1, points: 20, explanation: 'Urgency bypasses rational decision-making and is the most effective tactic.'},
+        {id: 17, question: 'You receive: "Your account will be locked!" - What should you do?', options: ['Click link immediately', 'Call the company\'s official number', 'Reply with your credentials', 'Forward to others'], correct: 1, points: 20, explanation: 'Always contact the company using official numbers from their website, not from the suspicious message.'},
+        {id: 18, question: 'What is pretexting in social engineering?', options: ['Email spam', 'Creating false scenarios to gain trust', 'Installing malware', 'Password cracking attempts'], correct: 1, points: 20, explanation: 'Pretexting creates a fabricated scenario or story to manipulate someone into revealing information.'},
+        {id: 19, question: 'Artificial urgency in communications is a sign of:', options: ['Legitimate offers', 'Potential scam or attack', 'Official company communication', 'Secure website'], correct: 1, points: 20, explanation: 'Legitimate companies DO NOT use artificial urgency to pressure immediate action.'},
+        {id: 20, question: 'What should you do with unsolicited offers?', options: ['Respond immediately', 'Verify independently through official channels', 'Ignore forever', 'Share with others'], correct: 1, points: 20, explanation: 'Verify ANY unsolicited offer through the company\'s official website or contact information.'}
+    ],
+    5: [
+        {id: 21, question: 'Which file type is most likely to contain malware?', options: ['.txt text files', '.exe executable files', '.pdf documents', '.jpg images'], correct: 1, points: 15, explanation: '.exe and other executable files (.bat, .scr, .dll, .cmd) are the most dangerous.'},
+        {id: 22, question: 'What is a double extension like ".pdf.exe" used for?', options: ['Harmless naming', 'Hiding true dangerous file type', 'Standard practice', 'Beneficial feature'], correct: 1, points: 10, explanation: 'Double extensions hide the true file type - the last extension (.exe) is what actually executes.'},
+        {id: 23, question: 'Should you open attachments from unknown senders?', options: ['Always open them', 'Sometimes safe', 'Never open them', 'Only if compressed'], correct: 2, points: 15, explanation: 'Never open attachments from unknown or suspicious senders - they commonly contain malware.'},
+        {id: 24, question: 'What does a file extension indicate?', options: ['File size in bytes', 'The file type and format', 'When it was created', 'Who sent it'], correct: 1, points: 15, explanation: 'Extension indicates the type of file (.exe is executable, .doc is document, etc.).'},
+        {id: 25, question: 'Which file extensions are most dangerous?', options: ['.doc, .pdf, .txt', '.zip, .exe, .bat, .scr', '.jpg, .png, .gif', '.mp3, .wav, .flac'], correct: 1, points: 15, explanation: 'Executables (.exe, .bat, .scr) and archives (.zip) that can contain executables are most dangerous.'}
+    ]
+};
+
+// Puzzle Data - 5 scenarios
+const puzzles = [
+    {
+        id: 1,
+        title: '🚨 Identify Phishing Email',
+        description: 'Analyze this email - is it legitimate or phishing?',
+        email: 'From: security@mybank123.com\nSubject: URGENT: Verify Your Account Now\nContent: "Your account has been locked. Click here immediately to verify your identity."',
+        correct: 'phishing',
+        points: 10,
+        reason: 'This is PHISHING. Red flags: Suspicious domain (mybank123.com), false urgency, request for credentials. Banks never ask for verification via email.'
+    },
+    {
+        id: 2,
+        title: '✅ Safe URL Check',
+        description: 'Is this URL safe to visit?',
+        url: 'https://mail.google.com/mail',
+        correct: 'safe',
+        points: 10,
+        reason: 'This is SAFE. Official Google URL: Uses HTTPS encryption, official domain, correct spelling.'
+    },
+    {
+        id: 3,
+        title: '🎯 Typosquatting Detection',
+        description: 'Is this website domain legitimate?',
+        url: 'paypa1.com',
+        correct: 'dangerous',
+        points: 15,
+        reason: 'This is DANGEROUS. Classic typosquatting - uses number "1" instead of letter "l" to mimic PayPal.'
+    },
+    {
+        id: 4,
+        title: '📎 Dangerous Attachment',
+        description: 'Is this attachment safe?',
+        attachment: 'invoice_2026.pdf.exe',
+        correct: 'dangerous',
+        points: 15,
+        reason: 'This is DANGEROUS. Double extension attack - file is actually an executable (.exe) disguised as PDF!'
+    },
+    {
+        id: 5,
+        title: '✅ Legitimate Email',
+        description: 'Is this email legitimate?',
+        email: 'From: noreply@amazon.com\nSubject: Your Order #123 Has Shipped\nContent: "Your package shipped. Track it here: amazon.com/track"',
+        correct: 'safe',
+        points: 10,
+        reason: 'This is LEGITIMATE. Official Amazon domain, includes order details, no urgency, official tracking link.'
+    }
+];
+
+// Load quiz module
+function loadQuizModule() {
+    const moduleId = document.getElementById('moduleSelect').value;
+    if (!moduleId) {
+        alert('Please select a module');
+        return;
+    }
+    
+    currentModule = moduleId;
+    currentQuestions = quizzes[moduleId];
+    displayQuiz();
+}
+
+// Display quiz questions
+function displayQuiz() {
+    const container = document.getElementById('questionsDisplay');
+    container.innerHTML = '';
+    
+    currentQuestions.forEach((q, index) => {
+        let optionsHtml = '';
+        q.options.forEach((option, i) => {
+            optionsHtml += `
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="q${q.id}" value="${i}" id="q${q.id}_${i}">
+                    <label class="form-check-label" for="q${q.id}_${i}">${option}</label>
+                </div>
+            `;
+        });
+        
+        const questionHtml = `
+            <div class="card mb-3">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <h6>Question ${index + 1}</h6>
+                        <span class="badge bg-primary">${q.points} pts</span>
+                    </div>
+                    <p class="mb-3"><strong>${q.question}</strong></p>
+                    ${optionsHtml}
+                </div>
+            </div>
+        `;
+        container.innerHTML += questionHtml;
+    });
+    
+    document.getElementById('quizContainer').style.display = 'block';
+    document.getElementById('resultsContainer').style.display = 'none';
+}
+
+// Submit quiz
+function submitQuiz() {
+    const formAnswers = {};
+    currentQuestions.forEach(q => {
+        const selected = document.querySelector(`input[name="q${q.id}"]:checked`);
+        if (selected) {
+            formAnswers[q.id] = parseInt(selected.value);
+        }
+    });
+    
+    if (Object.keys(formAnswers).length === 0) {
+        alert('Please answer at least one question');
+        return;
+    }
+    
+    let correct = 0;
+    let totalPoints = 0;
+    let reviewHtml = '<h5 class="mb-3">📖 Answer Review:</h5>';
+    
+    currentQuestions.forEach(q => {
+        const isCorrect = formAnswers[q.id] === q.correct;
+        if (isCorrect) {
+            correct++;
+            totalPoints += q.points;
+        }
+        
+        reviewHtml += `
+            <div class="mb-3 p-3 border rounded ${isCorrect ? 'border-success bg-success bg-opacity-10' : 'border-danger bg-danger bg-opacity-10'}">
+                <h6 class="mb-2">${q.question}</h6>
+                <p class="small mb-2">
+                    <strong>Your Answer:</strong> ${q.options[formAnswers[q.id]] || 'Not answered'}<br>
+                    <strong>Correct Answer:</strong> ${q.options[q.correct]}
+                </p>
+                <p class="small text-muted mb-0">📝 <strong>Explanation:</strong> ${q.explanation}</p>
+            </div>
+        `;
+    });
+    
+    document.getElementById('correctDisplay').textContent = `${correct}/${currentQuestions.length}`;
+    document.getElementById('scoreDisplay').textContent = `${Math.round((correct / currentQuestions.length) * 100)}%`;
+    document.getElementById('pointsDisplay').textContent = totalPoints;
+    document.getElementById('reviewContainer').innerHTML = reviewHtml;
+    
+    document.getElementById('quizContainer').style.display = 'none';
+    document.getElementById('resultsContainer').style.display = 'block';
+}
+
+// Reset quiz
+function resetQuiz() {
+    document.getElementById('moduleSelect').value = '';
+    document.getElementById('quizContainer').style.display = 'none';
+    document.getElementById('resultsContainer').style.display = 'none';
+}
+
+// Display puzzles
+function displayPuzzles() {
+    const container = document.getElementById('puzzlesContainer');
+    let totalPoints = 0;
+    let html = `<div class="alert alert-info mb-4">
+        <strong>📊 Interactive Mode:</strong> Click the buttons below to assess each scenario. Score points for correct answers!
+    </div>`;
+    
+    puzzles.forEach(puzzle => {
+        totalPoints += puzzle.points;
+        let content = '';
+        let style = 'border-start border-4 border-primary';
+        
+        if (puzzle.email) {
+            content = `<div class="bg-light p-3 rounded ${style}" style="font-family: monospace; white-space: pre-wrap; word-break: break-word; font-size: 0.85rem;">${puzzle.email}</div>`;
+        } else if (puzzle.url) {
+            style = 'border-start border-4 border-info';
+            content = `<div class="bg-light p-3 rounded ${style}"><strong>🔗 URL:</strong> <code class="text-danger">${puzzle.url}</code></div>`;
+        } else if (puzzle.attachment) {
+            style = 'border-start border-4 border-warning';
+            content = `<div class="bg-light p-3 rounded ${style}"><strong>📎 Attachment:</strong> <code>${puzzle.attachment}</code></div>`;
+        }
+        
+        html += `
+            <div class="card mb-4 shadow-sm">
+                <div class="card-header ${puzzle.correct === 'phishing' || puzzle.correct === 'dangerous' ? 'bg-danger' : 'bg-success'} text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0">${puzzle.title}</h6>
+                        <span class="badge bg-light text-dark">+${puzzle.points} pts</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted small mb-3">${puzzle.description}</p>
+                    ${content}
+                    <div class="mt-3">
+                        <button class="btn btn-${puzzle.correct === 'dangerous' || puzzle.correct === 'phishing' ? 'danger' : 'outline-danger'}" onclick="selectAnswer(${puzzle.id}, '${puzzle.correct}')">
+                            ${puzzle.correct === 'phishing' ? '🚨 This is Phishing' : puzzle.correct === 'dangerous' ? '⚠️ This is Dangerous' : '⚠️ This is Dangerous'}
+                        </button>
+                        <button class="btn btn-${puzzle.correct === 'safe' ? 'success' : 'outline-success'}" onclick="selectAnswer(${puzzle.id}, '${puzzle.correct === 'dangerous' || puzzle.correct === 'phishing' ? 'other' : 'safe'}')">
+                            ${puzzle.correct === 'phishing' ? '✅ This is Legitimate' : '✅ This is Safe'}
+                        </button>
+                    </div>
+                    <button class="btn btn-sm btn-outline-secondary w-100 mt-2" onclick="toggleAnswer(${puzzle.id})">
+                        💡 Show Explanation
+                    </button>
+                    <div id="answer-${puzzle.id}" style="display: none;" class="mt-3 p-3 bg-info bg-opacity-10 rounded">
+                        <p class="small"><strong>✓ Result:</strong> ${puzzle.reason}</p>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    html += `<div class="alert alert-primary mt-4"><strong>Total Points Available:</strong> ${totalPoints} points</div>`;
+    container.innerHTML = html;
+}
+
+function selectAnswer(id, selected) {
+    const puzzle = puzzles.find(p => p.id === id);
+    if (selected === puzzle.correct) {
+        alert(`✅ Correct! +${puzzle.points} points`);
+    } else {
+        alert(`❌ Incorrect. See explanation below.`);
+    }
+    toggleAnswer(id);
+}
+
+function toggleAnswer(id) {
+    const element = document.getElementById(`answer-${id}`);
+    if (element) {
+        element.style.display = element.style.display === 'none' ? 'block' : 'none';
+    }
+}
+
+// Load puzzles when Puzzle tab is shown
+document.addEventListener('DOMContentLoaded', function() {
+    displayPuzzles();
+});
+</script>
+
+{% endblock %}
+        <!-- Quiz Questions Tab -->
+        <div id="quizzes" class="tab-pane fade show active">
+            <div class="row mb-4">
+                <div class="col-md-12">
+                    <select id="moduleSelect" class="form-select">
+                        <option value="">Select a Module to Quiz</option>
+                        <option value="1">Phishing Fundamentals</option>
+                        <option value="2">Email Header Analysis</option>
+                        <option value="3">URL Analysis and Safety</option>
+                        <option value="4">Social Engineering Tactics</option>
+                        <option value="5">Attachment Security</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Quiz Container -->
+            <div id="quizContainer" style="display: none;">
+                <div id="questionsDisplay"></div>
+                <div class="mt-4">
+                    <button class="btn btn-primary" id="submitQuizBtn">Submit Quiz</button>
+                    <button class="btn btn-secondary" id="resetQuizBtn">Reset</button>
+                </div>
+            </div>
+
+            <div id="quizResultsContainer" style="display: none;">
+                <div class="card">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0">✅ Quiz Complete!</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row text-center">
+                            <div class="col-md-4">
+                                <h3 id="correctAnswersDisplay">0/0</h3>
+                                <p class="text-muted">Correct Answers</p>
+                            </div>
+                            <div class="col-md-4">
+                                <h3 id="scorePercentageDisplay">0%</h3>
+                                <p class="text-muted">Score</p>
+                            </div>
+                            <div class="col-md-4">
+                                <h3 id="pointsEarnedDisplay">0</h3>
+                                <p class="text-muted">Points Earned</p>
+                            </div>
+                        </div>
+                        <div id="answerReview" class="mt-4"></div>
+                        <button class="btn btn-primary mt-4" onclick="location.reload()">Take Another Quiz</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Puzzle Challenges Tab -->
+        <div id="puzzles" class="tab-pane fade">
+            <div class="row mb-4">
+                <div class="col-md-12">
+                    <p class="text-muted">Complete interactive puzzles to test your phishing detection skills</p>
+                </div>
+            </div>
+
+            <!-- Identify Phishing Puzzle -->
+            <div class="card mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">🎯 Identify the Phishing Email</h5>
+                </div>
+                <div class="card-body">
+                    <div id="identifyPhishingContainer"></div>
+                </div>
+            </div>
+
+            <!-- URL Safety Puzzle -->
+            <div class="card mb-4">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">🔗 URL Safety Check</h5>
+                </div>
+                <div class="card-body">
+                    <div id="urlSafetyContainer"></div>
+                </div>
+            </div>
+
+            <!-- Header Detective Puzzle -->
+            <div class="card">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0">🔍 Email Header Detective</h5>
+                </div>
+                <div class="card-body">
+                    <div id="headerDetectiveContainer"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Tab -->
+        <div id="results" class="tab-pane fade">
+            <div id="userResultsContainer">
+                <!-- Results loaded via JavaScript -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Quiz System
+const QuizManager = {
+    currentModule: null,
+    currentQuestions: [],
+    userAnswers: {},
+
+    // Load quiz for selected module
+    loadQuiz: async function(moduleId) {
+        try {
+            const response = await fetch(`/api/quiz/${moduleId}`);
+            const data = await response.json();
+            this.currentModule = moduleId;
+            this.currentQuestions = data.questions;
+            this.userAnswers = {};
+            this.displayQuiz();
+        } catch (error) {
+            alert('Error loading quiz: ' + error);
+        }
+    },
+
+    // Display quiz questions
+    displayQuiz: function() {
+        const container = document.getElementById('questionsDisplay');
+        container.innerHTML = '';
+
+        this.currentQuestions.forEach((q, index) => {
+            const questionDiv = document.createElement('div');
+            questionDiv.className = 'card mb-3';
+            
+            let optionsHtml = '';
+            if (q.type === 'true_false') {
+                optionsHtml = q.options.map((opt, i) => `
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="q${q.id}" value="${i}" id="q${q.id}_${i}">
+                        <label class="form-check-label" for="q${q.id}_${i}">${opt}</label>
+                    </div>
+                `).join('');
+            } else {
+                optionsHtml = q.options.map((opt, i) => `
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="q${q.id}" value="${i}" id="q${q.id}_${i}">
+                        <label class="form-check-label" for="q${q.id}_${i}">${opt}</label>
+                    </div>
+                `).join('');
+            }
+
+            questionDiv.innerHTML = `
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h6 class="card-title">Question ${index + 1}</h6>
+                            <p>${q.question}</p>
+                        </div>
+                        <span class="badge bg-primary">${q.points} pts</span>
+                    </div>
+                    <div class="mt-3">
+                        ${optionsHtml}
+                    </div>
+                </div>
+            `;
+
+            container.appendChild(questionDiv);
+        });
+
+        document.getElementById('quizContainer').style.display = 'block';
+        document.getElementById('quizResultsContainer').style.display = 'none';
+    },
+
+    // Submit quiz
+    submitQuiz: async function() {
+        // Collect answers
+        const answers = {};
+        this.currentQuestions.forEach(q => {
+            const selected = document.querySelector(`input[name="q${q.id}"]:checked`);
+            if (selected) {
+                answers[q.id] = parseInt(selected.value);
+            }
+        });
+
+        try {
+            const response = await fetch('/api/quiz/submit', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    module_id: this.currentModule,
+                    answers: answers
+                })
+            });
+
+            const result = await response.json();
+            this.displayResults(result);
+        } catch (error) {
+            alert('Error submitting quiz: ' + error);
+        }
+    },
+
+    // Display quiz results
+    displayResults: function(result) {
+        document.getElementById('quizContainer').style.display = 'none';
+        document.getElementById('quizResultsContainer').style.display = 'block';
+
+        document.getElementById('correctAnswersDisplay').textContent = 
+            `${result.correct_answers}/${this.currentQuestions.length}`;
+        document.getElementById('scorePercentageDisplay').textContent = 
+            `${result.percentage.toFixed(1)}%`;
+        document.getElementById('pointsEarnedDisplay').textContent = 
+            result.total_points;
+
+        // Show answer review
+        let reviewHtml = '<h5 class="mb-3">Answer Review:</h5>';
+        this.currentQuestions.forEach(q => {
+            const isCorrect = result.correct_by_question[q.id];
+            reviewHtml += `
+                <div class="mb-3 p-3 border rounded ${isCorrect ? 'border-success' : 'border-danger'}">
+                    <h6>${q.question}</h6>
+                    <small class="text-muted">${isCorrect ? '✅ Correct' : '❌ Incorrect'}</small>
+                    <p class="mt-2 small">${q.explanation}</p>
+                </div>
+            `;
+        });
+        document.getElementById('answerReview').innerHTML = reviewHtml;
+    },
+
+    // Reset quiz
+    resetQuiz: function() {
+        this.userAnswers = {};
+        document.getElementById('quizContainer').style.display = 'none';
+        document.getElementById('quizResultsContainer').style.display = 'none';
+        document.getElementById('moduleSelect').value = '';
+    }
+};
+
+// Load user results
+async function loadUserResults() {
+    try {
+        const response = await fetch('/api/quiz/results');
+        const data = await response.json();
+        
+        let html = `
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">📊 Your Quiz Statistics</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-4">
+                            <h3>${data.stats.total_quizzes}</h3>
+                            <p class="text-muted">Quizzes Completed</p>
+                        </div>
+                        <div class="col-md-4">
+                            <h3>${data.stats.average_score.toFixed(1)}%</h3>
+                            <p class="text-muted">Average Score</p>
+                        </div>
+                        <div class="col-md-4">
+                            <h3>${data.stats.total_points}</h3>
+                            <p class="text-muted">Total Points</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.getElementById('userResultsContainer').innerHTML = html;
+    } catch (error) {
+        console.error('Error loading results:', error);
+    }
+}
+
+// Event Listeners
+document.getElementById('moduleSelect')?.addEventListener('change', function() {
+    if (this.value) {
+        QuizManager.loadQuiz(this.value);
+    }
+});
+
+document.getElementById('submitQuizBtn')?.addEventListener('click', () => {
+    QuizManager.submitQuiz();
+});
+
+document.getElementById('resetQuizBtn')?.addEventListener('click', () => {
+    QuizManager.resetQuiz();
+});
+
+// Load results on tab switch
+document.querySelector('a[href="#results"]')?.addEventListener('shown.bs.tab', () => {
+    loadUserResults();
+});
+
+// Load puzzles on tab switch
+document.querySelector('a[href="#puzzles"]')?.addEventListener('shown.bs.tab', () => {
+    loadPuzzleChallenges();
+});
+
+// Load puzzle challenges
+async function loadPuzzleChallenges() {
+    try {
+        const response = await fetch('/api/puzzles');
+        const data = await response.json();
+        
+        // Display puzzles
+        if (data.puzzles.identify_phishing) {
+            displayIdentifyPhishingPuzzle(data.puzzles.identify_phishing);
+        }
+        if (data.puzzles.url_safety_check) {
+            displayURLSafetyPuzzle(data.puzzles.url_safety_check);
+        }
+    } catch (error) {
+        console.error('Error loading puzzles:', error);
+    }
+}
+
+function displayIdentifyPhishingPuzzle(puzzle) {
+    const container = document.getElementById('identifyPhishingContainer');
+    let html = '';
+    
+    puzzle.puzzles.forEach((p, index) => {
+        html += `
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h6>Email ${index + 1}</h6>
+                </div>
+                <div class="card-body">
+                    <p><strong>From:</strong> ${p.email.from}</p>
+                    <p><strong>Subject:</strong> ${p.email.subject}</p>
+                    <p><strong>Content:</strong> ${p.email.content}</p>
+                    <div class="mt-3">
+                        <button class="btn btn-sm btn-danger" onclick="answerPhishingPuzzle(${index}, true)">
+                            🚨 This is Phishing
+                        </button>
+                        <button class="btn btn-sm btn-success" onclick="answerPhishingPuzzle(${index}, false)">
+                            ✅ This is Legitimate
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    container.innerHTML = html;
+}
+
+function displayURLSafetyPuzzle(puzzle) {
+    const container = document.getElementById('urlSafetyContainer');
+    let html = '';
+    
+    puzzle.puzzles.forEach((p, index) => {
+        html += `
+            <div class="card mb-3">
+                <div class="card-body">
+                    <p class="font-monospace small bg-light p-2 rounded">${p.url}</p>
+                    <div class="mt-3">
+                        <button class="btn btn-sm btn-success" onclick="answerURLPuzzle(${index}, true)">
+                            ✅ Safe to Click
+                        </button>
+                        <button class="btn btn-sm btn-danger" onclick="answerURLPuzzle(${index}, false)">
+                            ⚠️ Dangerous
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    container.innerHTML = html;
+}
+
+function answerPhishingPuzzle(index, isPhishing) {
+    alert(`Correct! This email ${isPhishing ? 'IS' : 'is NOT'} a phishing attempt.`);
+}
+
+function answerURLPuzzle(index, isSafe) {
+    alert(`${isSafe ? '✅ Correct!' : '⚠️ Correct!'} This URL is ${isSafe ? 'safe' : 'dangerous'}.`);
+}
+</script>

@@ -1,0 +1,221 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row mb-5">
+        <div class="col-lg-12">
+            <h1 class="mb-2">📚 Learning Center</h1>
+            <p class="text-muted">Master phishing detection with our comprehensive learning modules</p>
+        </div>
+    </div>
+
+    <!-- Quick Access to Quiz & Puzzles -->
+    <div class="alert alert-info mb-4">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h5 class="mb-0">🎯 Test Your Knowledge</h5>
+                <small>Take quizzes and solve puzzles to reinforce your learning</small>
+            </div>
+            <div class="col-md-4 text-end">
+                <a href="/quiz" class="btn btn-info btn-sm">
+                    📝 Go to Quiz & Puzzles
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter and Search -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <input type="text" id="moduleSearch" class="form-control" placeholder="Search modules...">
+        </div>
+        <div class="col-md-6">
+            <select id="difficultyFilter" class="form-select">
+                <option value="">All Difficulty Levels</option>
+                <option value="Beginner">Beginner</option>
+                <option value="Intermediate">Intermediate</option>
+                <option value="Advanced">Advanced</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Module Cards -->
+    <div id="modulesContainer" class="row mb-5">
+        <!-- Modules loaded via JavaScript -->
+    </div>
+
+    <!-- Learning Progress -->
+    {% if current_user.is_authenticated %}
+    <div class="row mt-5">
+        <div class="col-lg-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">📊 Your Learning Progress</h5>
+                </div>
+                <div class="card-body">
+                    <div id="progressContainer">
+                        <!-- Progress loaded via JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recommendations -->
+    <div class="row mt-4">
+        <div class="col-lg-12">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">💡 Recommended for You</h5>
+                </div>
+                <div class="card-body">
+                    <div id="recommendationsContainer">
+                        <!-- Recommendations loaded via JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Module Detail Modal -->
+<div class="modal fade" id="moduleModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalTitle"></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="moduleContent"></div>
+                <div class="mt-4">
+                    <div class="progress">
+                        <div id="moduleProgress" class="progress-bar" style="width: 0%"></div>
+                    </div>
+                    <small id="progressText" class="text-muted"></small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="markCompleteBtn">Mark Complete</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Load learning modules
+async function loadModules() {
+    try {
+        const response = await fetch('/api/learning-modules');
+        const data = await response.json();
+        
+        displayModules(data.modules);
+    } catch (error) {
+        console.error('Error loading modules:', error);
+    }
+}
+
+function displayModules(modules) {
+    const container = document.getElementById('modulesContainer');
+    const searchTerm = document.getElementById('moduleSearch').value.toLowerCase();
+    const difficulty = document.getElementById('difficultyFilter').value;
+    
+    const filtered = modules.filter(m => 
+        (m.title.toLowerCase().includes(searchTerm)) &&
+        (!difficulty || m.difficulty === difficulty)
+    );
+    
+    container.innerHTML = filtered.map(module => `
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">${module.title}</h5>
+                    <p class="card-text small text-muted">${module.description}</p>
+                    <div class="mb-3">
+                        <span class="badge bg-info">${module.difficulty}</span>
+                        <span class="badge bg-secondary">${module.duration} min</span>
+                        ${module.completed ? '<span class="badge bg-success">✓ Completed</span>' : ''}
+                    </div>
+                    <div class="progress mb-3">
+                        <div class="progress-bar" style="width: ${module.progress}%"></div>
+                    </div>
+                    <button class="btn btn-sm btn-primary w-100" onclick="openModule(${module.id})">
+                        ${module.completed ? 'Review Module' : 'Start Learning'}
+                    </button>
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+async function openModule(moduleId) {
+    try {
+        const response = await fetch(`/api/learning-modules/${moduleId}`);
+        const module = await response.json();
+        
+        document.getElementById('modalTitle').textContent = module.title;
+        document.getElementById('moduleContent').innerHTML = module.content;
+        document.getElementById('moduleProgress').style.width = '0%';
+        document.getElementById('markCompleteBtn').onclick = () => completeModule(moduleId);
+        
+        new bootstrap.Modal(document.getElementById('moduleModal')).show();
+    } catch (error) {
+        console.error('Error loading module:', error);
+    }
+}
+
+async function completeModule(moduleId) {
+    try {
+        const response = await fetch('/api/learning-progress', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ module_id: moduleId, progress: 100 })
+        });
+        
+        if (response.ok) {
+            alert('Module completed! Points awarded!');
+            bootstrap.Modal.getInstance(document.getElementById('moduleModal')).hide();
+            loadModules();
+            loadProgress();
+        }
+    } catch (error) {
+        console.error('Error completing module:', error);
+    }
+}
+
+async function loadProgress() {
+    try {
+        const response = await fetch('/api/learning-modules');
+        const data = await response.json();
+        
+        const completed = data.modules.filter(m => m.completed).length;
+        const total = data.modules.length;
+        
+        const progressContainer = document.getElementById('progressContainer');
+        progressContainer.innerHTML = `
+            <p>${completed} of ${total} modules completed</p>
+            <div class="progress" style="height: 25px;">
+                <div class="progress-bar bg-success" style="width: ${(completed/total)*100}%">
+                    ${Math.round((completed/total)*100)}%
+                </div>
+            </div>
+        `;
+    } catch (error) {
+        console.error('Error loading progress:', error);
+    }
+}
+
+// Initialize
+document.addEventListener('DOMContentLoaded', () => {
+    loadModules();
+    if (document.getElementById('progressContainer')) {
+        loadProgress();
+    }
+    
+    document.getElementById('moduleSearch').addEventListener('input', () => loadModules());
+    document.getElementById('difficultyFilter').addEventListener('change', () => loadModules());
+});
+</script>
+{% endblock %}

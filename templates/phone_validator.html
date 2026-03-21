@@ -1,0 +1,221 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row mb-5">
+        <div class="col-lg-12">
+            <h1 class="mb-2">📱 Phone Number Validator</h1>
+            <p class="text-muted">Analyze phone numbers in emails for spoofing and phishing indicators</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Input Section -->
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Analyze Phone Number</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="phoneInput" class="form-label">Phone Number</label>
+                        <input type="text" id="phoneInput" class="form-control form-control-lg" 
+                               placeholder="e.g., +1 (555) 123-4567 or 5551234567">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="emailBody" class="form-label">Email Context (Optional)</label>
+                        <textarea id="emailBody" class="form-control" rows="4" 
+                                  placeholder="Paste email text to check context..."></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="senderInfo" class="form-label">Email Sender (Optional)</label>
+                        <input type="text" id="senderInfo" class="form-control" 
+                               placeholder="e.g., support@example.com">
+                    </div>
+                    
+                    <button onclick="analyzePhone()" class="btn btn-primary btn-lg w-100">
+                        <i class="fas fa-check-circle"></i> Analyze Phone
+                    </button>
+                </div>
+            </div>
+
+            <!-- Results Section -->
+            <div id="resultsContainer"></div>
+        </div>
+
+        <!-- Info Sidebar -->
+        <div class="col-lg-4">
+            <div class="card bg-info text-white mb-4">
+                <div class="card-body">
+                    <h5>Phone Spoofing Risks</h5>
+                    <p>Attackers use fake phone numbers for:</p>
+                    <ul class="mb-0">
+                        <li>Social engineering</li>
+                        <li>Fake support claims</li>
+                        <li>Urgency tactics</li>
+                        <li>Authority impersonation</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="card bg-danger text-white">
+                <div class="card-body">
+                    <h5>Red Flags</h5>
+                    <ul class="small mb-0">
+                        <li>Unusual number patterns</li>
+                        <li>Famous fake numbers (555)</li>
+                        <li>All same digits</li>
+                        <li>Urgent tone + phone call</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+async function analyzePhone() {
+    const phone = document.getElementById('phoneInput').value.trim();
+    
+    if (!phone) {
+        alert('Please enter a phone number');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/analyze-phone', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                phone: phone,
+                email_body: document.getElementById('emailBody').value,
+                sender: document.getElementById('senderInfo').value
+            })
+        });
+        
+        const result = await response.json();
+        displayResults(result);
+    } catch (error) {
+        console.error('Error analyzing phone:', error);
+        alert('Error analyzing phone number');
+    }
+}
+
+function getRiskBadge(riskLevel) {
+    const colors = {
+        'critical': 'danger',
+        'high': 'warning',
+        'medium': 'info',
+        'low': 'success',
+        'unknown': 'secondary'
+    };
+    return colors[riskLevel] || 'secondary';
+}
+
+function displayResults(result) {
+    const container = document.getElementById('resultsContainer');
+    
+    let html = `
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Phone Analysis: ${result.phone_number}</h5>
+            </div>
+            <div class="card-body">
+    `;
+    
+    // Format validity
+    html += `
+        <div class="alert alert-${result.format_valid ? 'success' : 'danger'}">
+            <strong>Format Check:</strong> ${result.format_valid ? '✓ Valid' : '✗ Invalid'}
+            <p class="mb-0 small">${result.format_message}</p>
+        </div>
+    `;
+    
+    // Risk Assessment
+    html += `
+        <div class="alert alert-${getRiskBadge(result.risk_level)}">
+            <strong>Risk Level: ${(result.risk_level || 'Unknown').toUpperCase()}</strong><br>
+            Risk Score: ${result.risk_score}/100<br>
+            <strong>Verdict:</strong> ${result.verdict}
+        </div>
+    `;
+    
+    // Basic Info
+    html += `
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <h6>Basic Information</h6>
+                <p>
+                    <strong>Country:</strong> ${result.country || 'Unknown'}<br>
+                    <strong>Cleaned Number:</strong> ${result.cleaned}
+                </p>
+            </div>
+            <div class="col-md-6">
+                <h6>Analysis</h6>
+                <p>
+                    <strong>Number Type:</strong> ${result.number_type || 'Unknown'}<br>
+                    <strong>Valid Format:</strong> ${result.format_valid ? 'Yes' : 'No'}
+                </p>
+            </div>
+        </div>
+    `;
+    
+    // Suspicious Patterns
+    if (result.suspicious_patterns && result.suspicious_patterns.length > 0) {
+        html += `
+            <h6>⚠️ Suspicious Patterns</h6>
+            <div class="mb-4">
+                ${result.suspicious_patterns.map(pattern => `
+                    <div class="alert alert-warning alert-sm mb-2" style="padding: 8px;">
+                        ${pattern}
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    }
+    
+    // Context Risk Factors
+    if (result.context_risk_factors && result.context_risk_factors.length > 0) {
+        html += `
+            <h6>📧 Email Context Risks</h6>
+            <div class="mb-4">
+                ${result.context_risk_factors.map(factor => `
+                    <div class="alert alert-info alert-sm mb-2" style="padding: 8px;">
+                        ${factor}
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    }
+    
+    // Recommendations
+    html += `
+        <div class="alert alert-info">
+            <h6>🛡️ Recommendations</h6>
+            <ul class="mb-0">
+                <li>Never call numbers from unsolicited emails</li>
+                <li>Use official contact info from company website</li>
+                <li>Report suspicious phone requests</li>
+                <li>Be cautious of urgent language + phone calls</li>
+            </ul>
+        </div>
+    `;
+    
+    html += `
+            </div>
+        </div>
+    `;
+    
+    container.innerHTML = html;
+}
+
+// Allow Enter key to analyze
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('phoneInput').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') analyzePhone();
+    });
+});
+</script>
+{% endblock %}

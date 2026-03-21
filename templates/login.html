@@ -56,33 +56,69 @@
     </div>
 
     <script>
-        document.getElementById('login-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
+        // Ensure DOM is fully loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            const loginForm = document.getElementById('login-form');
+            const errorContainer = document.getElementById('error-message');
             
-            const username = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
-            
-            try {
-                const response = await fetch('/login', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({username, password})
-                });
-                
-                const data = await response.json();
-                
-                if (response.ok) {
-                    window.location.href = data.redirect;
-                } else {
-                    document.getElementById('error-message').innerHTML = 
-                        `<div class="alert alert-danger">${data.error}</div>`;
-                }
-            } catch (error) {
-                document.getElementById('error-message').innerHTML = 
-                    `<div class="alert alert-danger">Error logging in</div>`;
+            if (!loginForm) {
+                console.error('Login form not found');
+                return;
             }
+            
+            loginForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                const username = document.getElementById('username').value.trim();
+                const password = document.getElementById('password').value.trim();
+                
+                // Validate inputs
+                if (!username || !password) {
+                    errorContainer.innerHTML = 
+                        '<div class="alert alert-warning">Please enter username and password</div>';
+                    return;
+                }
+                
+                // Disable submit button during request
+                const submitBtn = loginForm.querySelector('button[type="submit"]');
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = 'Logging in...';
+                
+                try {
+                    const response = await fetch('/login', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({username, password})
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (response.ok) {
+                        // Clear error and redirect
+                        errorContainer.innerHTML = '';
+                        window.location.href = data.redirect;
+                    } else {
+                        errorContainer.innerHTML = 
+                            `<div class="alert alert-danger" role="alert">
+                                <strong>Login Failed!</strong><br>
+                                ${data.error || 'Invalid credentials'}
+                            </div>`;
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = 'Login';
+                    }
+                } catch (error) {
+                    console.error('Login error:', error);
+                    errorContainer.innerHTML = 
+                        `<div class="alert alert-danger" role="alert">
+                            <strong>Error!</strong><br>
+                            Unable to connect to server. Please try again.
+                        </div>`;
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = 'Login';
+                }
+            });
         });
     </script>
 </body>

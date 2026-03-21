@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row mb-4">
+        <div class="col-lg-8">
+            <h1 class="mb-4">🏆 Leaderboard</h1>
+        </div>
+        <div class="col-lg-4">
+            {% if current_user.is_authenticated %}
+            <div class="alert alert-info">
+                <strong>Your Rank:</strong> #{{ user_rank or 'Unranked' }}<br>
+                <strong>Points:</strong> {{ current_user.total_points }}<br>
+                <strong>Level:</strong> {{ current_user.skill_level }}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Leaderboard Table -->
+    <div class="card shadow-mg">
+        <div class="card-body p-0">
+            <table class="table table-hover mb-0">
+                <thead class="table-dark">
+                    <tr>
+                        <th width="5%">Rank</th>
+                        <th width="25%">Username</th>
+                        <th width="15%">Points</th>
+                        <th width="15%">Level</th>
+                        <th width="20%">Quizzes</th>
+                        <th width="20%">Perfect Scans</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in top_users %}
+                    <tr{% if current_user.is_authenticated and current_user.username == user.username %} class="table-warning"{% endif %}>
+                        <td>
+                            {% if user.rank == 1 %}
+                            <span class="badge bg-warning text-dark">🥇 1st</span>
+                            {% elif user.rank == 2 %}
+                            <span class="badge bg-secondary">🥈 2nd</span>
+                            {% elif user.rank == 3 %}
+                            <span class="badge bg-warning">🥉 3rd</span>
+                            {% else %}
+                            <strong>#{{ user.rank }}</strong>
+                            {% endif %}
+                        </td>
+                        <td><strong>{{ user.username }}</strong></td>
+                        <td><span class="badge bg-primary">{{ user.points }}</span></td>
+                        <td>{{ user.skill_level }}</td>
+                        <td>{{ user.quizzes_completed }}</td>
+                        <td>{{ user.perfect_scans }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Info Cards -->
+    <div class="row mt-5">
+        <div class="col-md-4 mb-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body text-center">
+                    <h5 class="card-title">How to Climb the Ranks</h5>
+                    <p class="card-text">
+                        ✓ Complete quizzes<br>
+                        ✓ Analyze emails & URLs<br>
+                        ✓ Learn new modules<br>
+                        ✓ Earn badges & achievements
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card bg-success text-white">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Skill Levels</h5>
+                    <p class="card-text">
+                        🟢 Beginner: 0-99<br>
+                        🟡 Intermediate: 100-499<br>
+                        🟠 Advanced: 500-1499<br>
+                        🔴 Expert: 1500+
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card bg-warning text-dark">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Top Badges</h5>
+                    <p class="card-text">
+                        🎓 Quiz Master<br>
+                        🔍 Threat Hunter<br>
+                        🏆 Leaderboard Champion<br>
+                        🎖️ Certified Defender
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

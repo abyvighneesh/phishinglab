@@ -17,6 +17,10 @@ import json
 import os
 from datetime import datetime
 from functools import wraps
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 from utils.phishing_templates import get_phishing_templates, get_template_by_id
 from utils.header_analysis import analyze_email_header
@@ -24,8 +28,32 @@ from utils.email_analysis import analyze_email
 from utils.url_analysis import scan_url
 from utils.login_page_detector import detect_fake_login
 from utils.defense_engine import generate_defense_tips
-from utils.models import db, User, Scan, QuizResult, PhishingTemplate, APILog
+from utils.models import db, User, Scan, QuizResult, PhishingTemplate, APILog, Achievement, Badge, Leaderboard
 from utils.report_generator import generate_pdf_report, generate_csv_report
+from utils.gamification_engine import (
+    add_points_to_user, calculate_quiz_points, check_achievements,
+    update_user_streak, get_user_stats, get_leaderboard,
+    generate_daily_challenge, get_user_progress_stats
+)
+from utils.educational_engine import (
+    create_default_modules, get_user_learning_progress,
+    update_module_progress, get_learning_resources,
+    generate_learning_recommendations
+)
+from utils.quiz_system import (
+    get_quiz_by_module, get_puzzle_challenge, calculate_quiz_score,
+    submit_quiz_attempt, get_user_quiz_stats
+)
+from utils.ip_geolocation import get_ip_geolocation, analyze_email_ips
+from utils.phone_validator import analyze_phone_number, extract_phone_numbers, analyze_email_phones
+from utils.qr_code_analyzer import analyze_qr_usage, get_qr_best_practices
+from utils.image_analyzer import analyze_email_images
+from utils.attachment_scanner import analyze_email_attachments, get_attachment_safety_checklist
+from utils.auth_utils import (
+    validate_password_strength, calculate_password_strength, 
+    get_password_strength_label, generate_verification_token, 
+    send_verification_email, is_verification_token_valid
+)
 
 # Get absolute path to static folder
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -35,9 +63,17 @@ DB_PATH = os.path.join(BASE_DIR, 'phishlab.db')
 app = Flask(__name__, 
     static_folder=STATIC_FOLDER,
     static_url_path='/static')
-app.config['SECRET_KEY'] = 'phishlab-educational-demo-2026'
-app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{DB_PATH}'
+
+# Security configuration - use environment variables in production
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'phishlab-educational-demo-2026-dev-only')
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', f'sqlite:///{DB_PATH}')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# Production security settings
+if os.getenv('FLASK_ENV') == 'production':
+    app.config['SESSION_COOKIE_SECURE'] = True
+    app.config['SESSION_COOKIE_HTTPONLY'] = True
+    app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
 # Initialize extensions
 db.init_app(app)
@@ -48,6 +84,8 @@ login_manager.login_view = 'login'
 # Create tables
 with app.app_context():
     db.create_all()
+    # Initialize default learning modules
+    create_default_modules()
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -73,7 +111,7 @@ def log_api_call(endpoint, method, status_code, response_time=0):
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
-    """User registration"""
+    """User registration with email verification and password strength"""
     if request.method == 'POST':
         data = request.get_json()
         username = data.get('username')
@@ -89,22 +127,69 @@ def register():
         if User.query.filter_by(email=email).first():
             return jsonify({'error': 'Email already exists'}), 400
         
+        # Validate password strength
+        password_validation = validate_password_strength(password)
+        if not password_validation['valid']:
+            return jsonify({'error': password_validation['message']}), 400
+        
+        # Generate verification token
+        verification_token = generate_verification_token()
+        
+        # Create user with unverified email
         user = User(
             username=username,
             email=email,
-            password_hash=generate_password_hash(password)
+            password_hash=generate_password_hash(password),
+            email_verified=False,
+            verification_token=verification_token,
+            verification_token_created_at=datetime.utcnow()
         )
         db.session.add(user)
         db.session.commit()
         
-        return jsonify({'message': 'Registration successful', 'redirect': url_for('login')}), 201
+        # Send verification email
+        verification_link = url_for('verify_email', token=verification_token, _external=True)
+        send_verification_email(email, username, verification_token, verification_link)
+        
+        return jsonify({
+            'message': 'Registration successful! Check your email to verify your account.',
+            'redirect': url_for('login')
+        }), 201
     
     return render_template('register.html')
 
 
+@app.route('/verify-email/<token>')
+def verify_email(token):
+    """Verify user email with token"""
+    user = User.query.filter_by(verification_token=token).first()
+    
+    if not user:
+        return render_template('verify_email.html', 
+                             success=False, 
+                             message='Invalid verification token')
+    
+    # Check if token has expired
+    if not is_verification_token_valid(user.verification_token_created_at):
+        return render_template('verify_email.html', 
+                             success=False, 
+                             message='Verification link has expired. Please register again.')
+    
+    # Mark email as verified
+    user.email_verified = True
+    user.verification_token = None
+    user.verification_token_created_at = None
+    db.session.commit()
+    
+    return render_template('verify_email.html', 
+                         success=True, 
+                         message='Email verified successfully! You can now log in.',
+                         login_url=url_for('login'))
+
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    """User login"""
+    """User login with email verification check"""
     if request.method == 'POST':
         data = request.get_json()
         username = data.get('username')
@@ -112,11 +197,17 @@ def login():
         
         user = User.query.filter_by(username=username).first()
         
-        if user and check_password_hash(user.password_hash, password):
-            login_user(user)
-            return jsonify({'message': 'Login successful', 'redirect': url_for('dashboard')}), 200
+        if not user or not check_password_hash(user.password_hash, password):
+            return jsonify({'error': 'Invalid username or password'}), 401
         
-        return jsonify({'error': 'Invalid username or password'}), 401
+        # Check if email is verified
+        if not user.email_verified:
+            return jsonify({
+                'error': 'Please verify your email before logging in. Check your inbox for the verification link.'
+            }), 403
+        
+        login_user(user)
+        return jsonify({'message': 'Login successful', 'redirect': url_for('dashboard')}), 200
     
     return render_template('login.html')
 
@@ -156,6 +247,7 @@ def dashboard():
 # ==================== PHISHING SIMULATION ====================
 
 @app.route('/simulate')
+@login_required
 def simulate():
     """Display phishing email simulation page"""
     templates = get_phishing_templates()
@@ -163,6 +255,7 @@ def simulate():
 
 
 @app.route('/get-template/<int:template_id>')
+@login_required
 def get_template(template_id):
     """API endpoint to fetch a specific phishing template"""
     template = get_template_by_id(template_id)
@@ -174,12 +267,14 @@ def get_template(template_id):
 # ==================== EMAIL HEADER ANALYZER ====================
 
 @app.route('/header-analyzer')
+@login_required
 def header_analyzer():
     """Display email header analyzer page"""
     return render_template('header_analyzer.html')
 
 
 @app.route('/analyze-header', methods=['POST'])
+@login_required
 def analyze_header():
     """Analyze email headers for phishing indicators"""
     data = request.get_json()
@@ -216,12 +311,14 @@ def analyze_header():
 # ==================== EMAIL SCANNER ====================
 
 @app.route('/email-scanner')
+@login_required
 def email_scanner():
     """Display email scanner page"""
     return render_template('email_scanner.html')
 
 
 @app.route('/scan-email', methods=['POST'])
+@login_required
 def scan_email_route():
     """Scan full email for phishing indicators"""
     data = request.get_json()
@@ -258,12 +355,14 @@ def scan_email_route():
 # ==================== URL SCANNER ====================
 
 @app.route('/url-scanner')
+@login_required
 def url_scanner():
     """Display URL scanner page"""
     return render_template('url_scanner.html')
 
 
 @app.route('/scan-url', methods=['POST'])
+@login_required
 def scan_url_route():
     """Scan URL for phishing indicators"""
     data = request.get_json()
@@ -300,12 +399,14 @@ def scan_url_route():
 # ==================== LOGIN DETECTOR ====================
 
 @app.route('/login-detector')
+@login_required
 def login_detector():
     """Display fake login page detector"""
     return render_template('login_detector.html')
 
 
 @app.route('/detect-login', methods=['POST'])
+@login_required
 def detect_login_route():
     """Detect fake login pages"""
     data = request.get_json()
@@ -342,6 +443,7 @@ def detect_login_route():
 # ==================== AWARENESS ====================
 
 @app.route('/awareness')
+@login_required
 def awareness():
     """Display phishing awareness and education dashboard"""
     return render_template('awareness.html')
@@ -564,6 +666,429 @@ def set_theme():
 def result():
     """Display analysis results"""
     return render_template('result.html')
+
+
+# ==================== GAMIFICATION & ACHIEVEMENTS ====================
+
+@app.route('/leaderboard')
+@login_required
+def leaderboard():
+    """Display leaderboard"""
+    top_users = get_leaderboard(limit=20)
+    user_rank = None
+    
+    if current_user.is_authenticated:
+        user_rank = next((u['rank'] for u in get_leaderboard(limit=1000) 
+                         if u['username'] == current_user.username), None)
+    
+    return render_template('leaderboard.html', top_users=top_users, user_rank=user_rank)
+
+
+@app.route('/api/stats')
+@login_required
+def get_stats():
+    """Get user statistics and gamification data"""
+    stats = get_user_stats(current_user.id)
+    progress = get_user_progress_stats(current_user.id)
+    challenge = generate_daily_challenge()
+    
+    return jsonify({
+        'stats': stats,
+        'progress': progress,
+        'daily_challenge': challenge
+    }), 200
+
+
+@app.route('/api/achievements')
+@login_required
+def get_achievements():
+    """Get user achievements and badges"""
+    achievements = Achievement.query.filter_by(user_id=current_user.id).all()
+    badges = current_user.badges
+    
+    return jsonify({
+        'achievements': [
+            {
+                'id': a.id,
+                'title': a.title,
+                'description': a.description,
+                'points': a.points_earned,
+                'type': a.achievement_type,
+                'unlocked_at': a.unlocked_at.isoformat()
+            }
+            for a in achievements
+        ],
+        'badges': [
+            {
+                'id': b.id,
+                'name': b.name,
+                'description': b.description,
+                'icon': b.icon,
+                'type': b.badge_type
+            }
+            for b in badges
+        ]
+    }), 200
+
+
+# ==================== EDUCATIONAL CONTENT ====================
+
+@app.route('/learning')
+@login_required
+def learning():
+    """Display learning modules"""
+    return render_template('learning.html')
+
+
+@app.route('/api/learning-modules')
+@login_required
+def get_learning_modules():
+    """Get all learning modules"""
+    from utils.models import LearningModule
+    modules = LearningModule.query.filter_by(is_published=True).all()
+    
+    user_progress = {}
+    if current_user.is_authenticated:
+        progress_data = get_user_learning_progress(current_user.id)
+        if progress_data:
+            user_progress = {m['id']: m for m in progress_data['modules']}
+    
+    return jsonify({
+        'modules': [
+            {
+                'id': m.id,
+                'title': m.title,
+                'description': m.description,
+                'category': m.category,
+                'difficulty': m.difficulty,
+                'duration': m.duration_minutes,
+                'progress': user_progress.get(m.id, {}).get('progress', 0) if user_progress else 0,
+                'completed': user_progress.get(m.id, {}).get('completed', False) if user_progress else False
+            }
+            for m in modules
+        ]
+    }), 200
+
+
+@app.route('/api/learning-modules/<int:module_id>')
+@login_required
+def get_learning_module(module_id):
+    """Get a specific learning module"""
+    from utils.models import LearningModule
+    module = LearningModule.query.get(module_id)
+    
+    if not module:
+        return jsonify({'error': 'Module not found'}), 404
+    
+    return jsonify({
+        'id': module.id,
+        'title': module.title,
+        'description': module.description,
+        'content': module.content,
+        'category': module.category,
+        'difficulty': module.difficulty,
+        'duration': module.duration_minutes,
+        'video_url': module.video_url
+    }), 200
+
+
+@app.route('/api/learning-progress', methods=['POST'])
+@login_required
+def update_learning_progress():
+    """Update learning module progress"""
+    data = request.get_json()
+    module_id = data.get('module_id')
+    progress = data.get('progress', 0)
+    
+    if not module_id:
+        return jsonify({'error': 'Module ID required'}), 400
+    
+    update_module_progress(current_user.id, module_id, progress)
+    
+    # Add points if completed
+    if progress >= 100:
+        add_points_to_user(current_user.id, 30, 'learning_module')
+        update_user_streak(current_user.id)
+    
+    return jsonify({'message': 'Progress updated'}), 200
+
+
+@app.route('/api/learning-resources')
+@login_required
+def get_learning_resources_api():
+    """Get learning resources"""
+    category = request.args.get('category')
+    resources = get_learning_resources(category)
+    return jsonify({'resources': resources}), 200
+
+
+@app.route('/api/learning-recommendations')
+@login_required
+def get_learning_recommendations_api():
+    """Get personalized learning recommendations"""
+    recommendations = generate_learning_recommendations(current_user.id)
+    return jsonify({'recommendations': recommendations}), 200
+
+
+# ==================== QUIZ & PUZZLE SYSTEM ====================
+
+@app.route('/quiz')
+@login_required
+def quiz_page():
+    """Display quiz page"""
+    return render_template('quiz.html')
+
+
+@app.route('/api/quiz/<int:module_id>')
+@login_required
+def get_module_quiz(module_id):
+    """Get quiz questions for a specific module"""
+    questions = get_quiz_by_module(module_id)
+    return jsonify({'questions': questions}), 200
+
+
+@app.route('/api/quiz/submit', methods=['POST'])
+@login_required
+def submit_quiz_api():
+    """Submit quiz answers and calculate score"""
+    data = request.get_json()
+    module_id = data.get('module_id')
+    answers = data.get('answers', {})
+    
+    # Calculate score
+    score = calculate_quiz_score(current_user.id, answers)
+    
+    # Store attempt
+    submit_quiz_attempt(current_user.id, module_id, answers, score)
+    
+    # Add points to user
+    add_points_to_user(current_user.id, score['total_points'], 'quiz_completion')
+    update_user_streak(current_user.id)
+    check_achievements(current_user.id)
+    
+    # Build response with correct answer indicators
+    questions = get_quiz_by_module(module_id)
+    correct_by_question = {}
+    for q in questions:
+        correct_by_question[q['id']] = (answers.get(q['id']) == q['correct_answer'])
+    
+    return jsonify({
+        'total_points': score['total_points'],
+        'correct_answers': score['correct_answers'],
+        'percentage': score['percentage'],
+        'correct_by_question': correct_by_question
+    }), 200
+
+
+@app.route('/api/quiz/results')
+@login_required
+def get_quiz_results():
+    """Get user's quiz statistics and results"""
+    stats = get_user_quiz_stats(current_user.id)
+    return jsonify({'stats': stats}), 200
+
+
+@app.route('/api/puzzles')
+@login_required
+def get_puzzles():
+    """Get all puzzle challenges"""
+    from utils.quiz_system import PUZZLE_CHALLENGES
+    
+    puzzles = {}
+    for key, challenge in PUZZLE_CHALLENGES.items():
+        puzzles[key] = challenge
+    
+    return jsonify({'puzzles': puzzles}), 200
+
+
+# ==================== ADDITIONAL DETECTION TOOLS ====================
+
+@app.route('/ip-geolocation')
+def ip_geolocation():
+    """Display IP geolocation tool"""
+    return render_template('ip_geolocation.html')
+
+
+@app.route('/api/analyze-ip', methods=['POST'])
+def analyze_ip():
+    """Analyze IP address for geolocation and threats"""
+    data = request.get_json()
+    ip_address = data.get('ip', '')
+    
+    if not ip_address:
+        return jsonify({'error': 'IP address required'}), 400
+    
+    result = get_ip_geolocation(ip_address)
+    
+    # Save to database
+    if current_user.is_authenticated:
+        from utils.models import DetectionResult
+        detection = DetectionResult(
+            user_id=current_user.id,
+            detection_type='ip-geo',
+            input_data=ip_address,
+            result=result,
+            risk_level=result.get('risk_level', 'unknown')
+        )
+        db.session.add(detection)
+        db.session.commit()
+        
+        # Award points if threat found
+        if result.get('risk_level') in ['high', 'critical']:
+            add_points_to_user(current_user.id, 15, 'ip_scan')
+    
+    return jsonify(result), 200
+
+
+@app.route('/phone-validator')
+def phone_validator():
+    """Display phone number validator tool"""
+    return render_template('phone_validator.html')
+
+
+@app.route('/api/analyze-phone', methods=['POST'])
+def analyze_phone():
+    """Analyze phone number for phishing indicators"""
+    data = request.get_json()
+    phone = data.get('phone', '')
+    email_body = data.get('email_body', '')
+    sender = data.get('sender', '')
+    
+    if not phone:
+        return jsonify({'error': 'Phone number required'}), 400
+    
+    result = analyze_phone_number(phone, email_body, sender)
+    
+    # Save to database
+    if current_user.is_authenticated:
+        from utils.models import DetectionResult
+        detection = DetectionResult(
+            user_id=current_user.id,
+            detection_type='phone',
+            input_data=phone,
+            result=result,
+            risk_level=result.get('risk_level', 'unknown')
+        )
+        db.session.add(detection)
+        db.session.commit()
+        
+        add_points_to_user(current_user.id, 15, 'phone_validation')
+    
+    return jsonify(result), 200
+
+
+@app.route('/qr-analyzer')
+def qr_analyzer():
+    """Display QR code analyzer tool"""
+    return render_template('qr_analyzer.html')
+
+
+@app.route('/api/analyze-qr', methods=['POST'])
+def analyze_qr():
+    """Analyze QR code in email for phishing"""
+    data = request.get_json()
+    email_text = data.get('email_text', '')
+    email_sender = data.get('sender', '')
+    qr_url = data.get('qr_url', '')
+    
+    if not email_text:
+        return jsonify({'error': 'Email text or QR URL required'}), 400
+    
+    result = analyze_qr_usage(email_text, email_sender, qr_url)
+    best_practices = get_qr_best_practices()
+    result['best_practices'] = best_practices
+    
+    # Save to database
+    if current_user.is_authenticated:
+        from utils.models import DetectionResult
+        detection = DetectionResult(
+            user_id=current_user.id,
+            detection_type='qr',
+            input_data=qr_url or email_text[:100],
+            result=result,
+            risk_level=result.get('risk_level', 'unknown')
+        )
+        db.session.add(detection)
+        db.session.commit()
+        
+        add_points_to_user(current_user.id, 20, 'qr_analysis')
+    
+    return jsonify(result), 200
+
+
+@app.route('/image-analyzer')
+def image_analyzer():
+    """Display image analyzer tool"""
+    return render_template('image_analyzer.html')
+
+
+@app.route('/api/analyze-images', methods=['POST'])
+def analyze_images():
+    """Analyze images in email for phishing"""
+    data = request.get_json()
+    html_content = data.get('html_content', '')
+    email_context = data.get('email_context', '')
+    
+    if not html_content:
+        return jsonify({'error': 'HTML content required'}), 400
+    
+    result = analyze_email_images(html_content, email_context)
+    
+    # Save to database
+    if current_user.is_authenticated:
+        from utils.models import DetectionResult
+        detection = DetectionResult(
+            user_id=current_user.id,
+            detection_type='image',
+            input_data='image-analysis',
+            result=result,
+            risk_level=result.get('risk_level', 'unknown')
+        )
+        db.session.add(detection)
+        db.session.commit()
+        
+        add_points_to_user(current_user.id, 15, 'image_analysis')
+    
+    return jsonify(result), 200
+
+
+@app.route('/attachment-scanner')
+def attachment_scanner():
+    """Display attachment scanner tool"""
+    return render_template('attachment_scanner.html')
+
+
+@app.route('/api/analyze-attachments', methods=['POST'])
+def analyze_attachments():
+    """Analyze email attachments for threats"""
+    data = request.get_json()
+    attachments = data.get('attachments', [])
+    email_subject = data.get('subject', '')
+    email_body = data.get('body', '')
+    
+    if not attachments:
+        return jsonify({'error': 'Attachments required'}), 400
+    
+    result = analyze_email_attachments(attachments, email_subject, email_body)
+    safety_checklist = get_attachment_safety_checklist()
+    result['safety_checklist'] = safety_checklist
+    
+    # Save to database
+    if current_user.is_authenticated:
+        from utils.models import DetectionResult
+        detection = DetectionResult(
+            user_id=current_user.id,
+            detection_type='attachment',
+            input_data=str([a.get('filename') for a in attachments])[:100],
+            result=result,
+            risk_level=result.get('overall_risk_level', 'unknown')
+        )
+        db.session.add(detection)
+        db.session.commit()
+        
+        add_points_to_user(current_user.id, 25, 'attachment_scan')
+    
+    return jsonify(result), 200
 
 
 # ==================== ERROR HANDLERS ====================

@@ -1,0 +1,229 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row mb-5">
+        <div class="col-lg-12">
+            <h1 class="mb-2">📲 QR Code Analyzer</h1>
+            <p class="text-muted">Analyze QR codes in emails for phishing and malicious content</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Input Section -->
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Analyze QR Code</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="emailText" class="form-label">Email Text</label>
+                        <textarea id="emailText" class="form-control" rows="4" 
+                                  placeholder="Paste email content..."></textarea>
+                        <small class="text-muted">We'll detect QR code references in the email</small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="qrUrl" class="form-label">QR Code URL (Optional)</label>
+                        <input type="text" id="qrUrl" class="form-control" 
+                               placeholder="If you know the decoded URL...">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="senderInfo" class="form-label">Sender Email (Optional)</label>
+                        <input type="text" id="senderInfo" class="form-control" 
+                               placeholder="e.g., support@example.com">
+                    </div>
+                    
+                    <button onclick="analyzeQR()" class="btn btn-primary btn-lg w-100">
+                        <i class="fas fa-qrcode"></i> Analyze QR Code
+                    </button>
+                </div>
+            </div>
+
+            <!-- Results Section -->
+            <div id="resultsContainer"></div>
+        </div>
+
+        <!-- Info Sidebar -->
+        <div class="col-lg-4">
+            <div class="card bg-danger text-white mb-4">
+                <div class="card-body">
+                    <h5>QR Code Risks</h5>
+                    <p>QR codes can hide:</p>
+                    <ul class="mb-0">
+                        <li>Malicious URLs</li>
+                        <li>Phishing pages</li>
+                        <li>Malware downloads</li>
+                        <li>Phone number spoofs</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="card bg-warning text-dark">
+                <div class="card-body">
+                    <h5>Safe Practices</h5>
+                    <ul class="small mb-0">
+                        <li>Never scan from emails</li>
+                        <li>Verify sender first</li>
+                        <li>Check URL preview</li>
+                        <li>Use security tools</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+async function analyzeQR() {
+    const emailText = document.getElementById('emailText').value.trim();
+    const qrUrl = document.getElementById('qrUrl').value.trim();
+    
+    if (!emailText && !qrUrl) {
+        alert('Please enter email text or QR URL');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/analyze-qr', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                email_text: emailText,
+                qr_url: qrUrl,
+                sender: document.getElementById('senderInfo').value
+            })
+        });
+        
+        const result = await response.json();
+        displayResults(result);
+    } catch (error) {
+        console.error('Error analyzing QR:', error);
+        alert('Error analyzing QR code');
+    }
+}
+
+function getRiskBadge(riskLevel) {
+    const colors = {
+        'critical': 'danger',
+        'high': 'warning',
+        'medium': 'info',
+        'low': 'success'
+    };
+    return colors[riskLevel] || 'secondary';
+}
+
+function displayResults(result) {
+    const container = document.getElementById('resultsContainer');
+    
+    let html = `
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">QR Code Analysis</h5>
+            </div>
+            <div class="card-body">
+    `;
+    
+    if (!result.has_qr_code) {
+        html += `<div class="alert alert-info">ℹ️ No QR code references detected in email</div>`;
+    } else {
+        // Risk Assessment
+        html += `
+            <div class="alert alert-${getRiskBadge(result.risk_level)}">
+                <strong>Risk Level: ${(result.risk_level || 'UNKNOWN').toUpperCase()}</strong><br>
+                Risk Score: ${result.risk_score}/100<br>
+                <strong>Verdict:</strong> ${result.verdict}
+            </div>
+        `;
+        
+        // QR References Found
+        html += `
+            <h6>📱 QR Code Detected</h6>
+            <div class="mb-4">
+                <p>Found ${result.qr_references.length} reference(s): ${result.qr_references.join(', ')}</p>
+            </div>
+        `;
+        
+        // URL Analysis if provided
+        if (result.url_analysis) {
+            html += `
+                <h6>🔗 URL Analysis</h6>
+                <div class="card card-sm mb-4 bg-light">
+                    <div class="card-body">
+                        <p><strong>URL:</strong> ${result.url_analysis.url}</p>
+                        <p><strong>Shortener:</strong> ${result.url_analysis.is_shortener ? '⚠️ Yes' : '✓ No'}</p>
+                        <p><strong>Obfuscated:</strong> ${result.url_analysis.is_obfuscated ? '⚠️ Yes' : '✓ No'}</p>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Context Flags
+        if (result.context_flags && result.context_flags.length > 0) {
+            html += `
+                <h6>📧 Suspicious Context</h6>
+                <div class="mb-4">
+                    ${result.context_flags.map(flag => `
+                        <div class="alert alert-warning alert-sm mb-2" style="padding: 8px;">
+                            ${flag}
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+        
+        // Recommendations
+        if (result.recommendations && result.recommendations.length > 0) {
+            html += `
+                <h6>🛡️ Recommendations</h6>
+                <ul>
+                    ${result.recommendations.map(rec => `<li>${rec}</li>`).join('')}
+                </ul>
+            `;
+        }
+    }
+    
+    // Best Practices (always show)
+    if (result.best_practices) {
+        html += `
+            <div class="alert alert-info mt-4">
+                <h6>📚 QR Code Safety Practices</h6>
+                <div class="row">
+                    <div class="col-md-6">
+                        <strong>General:</strong>
+                        <ul class="small mb-0">
+                            ${result.best_practices.general.map(p => `<li>${p}</li>`).join('')}
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Email:</strong>
+                        <ul class="small mb-0">
+                            ${result.best_practices.email.map(p => `<li>${p}</li>`).join('')}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    html += `
+            </div>
+        </div>
+    `;
+    
+    container.innerHTML = html;
+}
+
+// Allow Enter key to analyze
+document.addEventListener('DOMContentLoaded', () => {
+    const qrUrl = document.getElementById('qrUrl');
+    if (qrUrl) {
+        qrUrl.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') analyzeQR();
+        });
+    }
+});
+</script>
+{% endblock %}

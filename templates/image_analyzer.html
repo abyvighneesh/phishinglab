@@ -1,0 +1,236 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row mb-5">
+        <div class="col-lg-12">
+            <h1 class="mb-2">🖼️ Image Analyzer</h1>
+            <p class="text-muted">Detect suspicious images, tracking pixels, and manipulated content in emails</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Input Section -->
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Analyze Email Images</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="htmlContent" class="form-label">Email HTML Content</label>
+                        <textarea id="htmlContent" class="form-control" rows="6" 
+                                  placeholder="Paste the HTML source of the email..."></textarea>
+                        <small class="text-muted">Paste raw HTML to detect all images</small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="emailContext" class="form-label">Email Context (Optional)</label>
+                        <textarea id="emailContext" class="form-control" rows="3" 
+                                  placeholder="Paste email body text..."></textarea>
+                    </div>
+                    
+                    <button onclick="analyzeImages()" class="btn btn-primary btn-lg w-100">
+                        <i class="fas fa-images"></i> Analyze Images
+                    </button>
+                </div>
+            </div>
+
+            <!-- Results Section -->
+            <div id="resultsContainer"></div>
+        </div>
+
+        <!-- Info Sidebar -->
+        <div class="col-lg-4">
+            <div class="card bg-danger text-white mb-4">
+                <div class="card-body">
+                    <h5>Image-Based Attacks</h5>
+                    <p>Attackers use images for:</p>
+                    <ul class="mb-0">
+                        <li>Tracking pixels</li>
+                        <li>Logo spoofing</li>
+                        <li>Fake alerts/warnings</li>
+                        <li>Clickable diversion</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="card bg-warning text-dark">
+                <div class="card-body">
+                    <h5>Red Flags</h5>
+                    <ul class="small mb-0">
+                        <li>Tracking (1x1) pixels</li>
+                        <li>External images</li>
+                        <li>Base64 encoding</li>
+                        <li>Logo impersonation</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+async function analyzeImages() {
+    const htmlContent = document.getElementById('htmlContent').value.trim();
+    
+    if (!htmlContent) {
+        alert('Please paste email HTML content');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/analyze-images', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                html_content: htmlContent,
+                email_context: document.getElementById('emailContext').value
+            })
+        });
+        
+        const result = await response.json();
+        displayResults(result);
+    } catch (error) {
+        console.error('Error analyzing images:', error);
+        alert('Error analyzing images');
+    }
+}
+
+function getRiskBadge(riskLevel) {
+    const colors = {
+        'critical': 'danger',
+        'high': 'warning',
+        'medium': 'info',
+        'low': 'success'
+    };
+    return colors[riskLevel] || 'secondary';
+}
+
+function displayResults(result) {
+    const container = document.getElementById('resultsContainer');
+    
+    let html = `
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Image Analysis Results</h5>
+            </div>
+            <div class="card-body">
+    `;
+    
+    // Overall Summary
+    html += `
+        <div class="alert alert-${getRiskBadge(result.risk_level)}">
+            <strong>Risk Level: ${(result.risk_level || 'UNKNOWN').toUpperCase()}</strong><br>
+            Risk Score: ${result.risk_score}/100<br>
+            ${result.summary}
+        </div>
+    `;
+    
+    // Statistics
+    html += `
+        <h6>📊 Image Statistics</h6>
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <p>
+                    <strong>Total Images:</strong> ${result.total_images}<br>
+                    <strong>IMG Tags:</strong> ${result.image_types.img_tag}<br>
+                    <strong>Background Images:</strong> ${result.image_types.background}
+                </p>
+            </div>
+            <div class="col-md-6">
+                <p>
+                    <strong>Base64 Images:</strong> ${result.image_types.base64}<br>
+                    <strong>Tracking Pixels:</strong> ${result.image_types.tracking_pixels}<br>
+                </p>
+            </div>
+        </div>
+    `;
+    
+    // Red Flags
+    if (result.red_flags && result.red_flags.length > 0) {
+        html += `
+            <h6>⚠️ Red Flags Detected</h6>
+            <div class="mb-4">
+                ${result.red_flags.map(flag => `
+                    <div class="alert alert-danger alert-sm mb-2" style="padding: 8px;">
+                        ${flag}
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    }
+    
+    // Image Details
+    if (result.images && result.images.length > 0) {
+        html += `
+            <h6>🖼️ Image Details</h6>
+            <div class="table-responsive mb-4">
+                <table class="table table-sm table-bordered">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Type</th>
+                            <th>Risk</th>
+                            <th>Details</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+        
+        result.images.forEach((img, idx) => {
+            const analysis = img.analysis;
+            html += `
+                <tr>
+                    <td>${img.type}</td>
+                    <td>
+                        <span class="badge bg-${getRiskBadge(analysis.risk_level || 'low')}">
+                            ${(analysis.risk_level || 'low').toUpperCase()}
+                        </span>
+                    </td>
+                    <td>
+                        ${analysis.suspicious_flags ? analysis.suspicious_flags.join(', ') : 'No flags'}
+                    </td>
+                </tr>
+            `;
+        });
+        
+        html += `
+                    </tbody>
+                </table>
+            </div>
+        `;
+    }
+    
+    // Recommendations
+    html += `
+        <div class="alert alert-info">
+            <h6>🛡️ Recommendations</h6>
+            <ul class="mb-0">
+                <li>Be suspicious of tracking pixels in emails</li>
+                <li>Disable external images in email client</li>
+                <li>Report emails with suspicious images</li>
+                <li>Don't click on images with unusual dimensions</li>
+                <li>Use image analysis tools before clicking</li>
+            </ul>
+        </div>
+    `;
+    
+    html += `
+            </div>
+        </div>
+    `;
+    
+    container.innerHTML = html;
+}
+
+// Allow Enter key to analyze
+document.addEventListener('DOMContentLoaded', () => {
+    const htmlContent = document.getElementById('htmlContent');
+    if (htmlContent) {
+        htmlContent.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && e.ctrlKey) analyzeImages();
+        });
+    }
+});
+</script>
+{% endblock %}

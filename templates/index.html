@@ -22,24 +22,6 @@
                     <li class="nav-item">
                         <a class="nav-link active" href="/">Home</a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/simulate">Simulate</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/email-scanner">Email Scanner</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/header-analyzer">Header Analyzer</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/url-scanner">URL Scanner</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/login-detector">Login Detector</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/awareness">Awareness</a>
-                    </li>
                     {% if current_user.is_authenticated %}
                     <li class="nav-item">
                         <a class="nav-link" href="/dashboard">Dashboard</a>
@@ -77,6 +59,12 @@
                         It does not perform real phishing attacks, credential harvesting, or malicious activity. 
                         All simulations are safe and offline.
                     </div>
+                    {% if not current_user.is_authenticated %}
+                    <div class="mt-4 d-flex gap-2">
+                        <a href="/login" class="btn btn-primary">Login</a>
+                        <a href="/register" class="btn btn-outline-light">Register</a>
+                    </div>
+                    {% endif %}
                 </div>
                 <div class="col-lg-6">
                     <div class="card shadow-lg">
@@ -119,6 +107,7 @@
     <section class="py-5">
         <div class="container">
             <h2 class="text-center mb-5">Explore PhishLab Modules</h2>
+            <p class="text-center text-muted mb-4">These modules are available after login.</p>
             <div class="row g-4">
                 <!-- Phishing Simulation -->
                 <div class="col-md-6 col-lg-4">

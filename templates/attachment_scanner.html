@@ -1,0 +1,304 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row mb-5">
+        <div class="col-lg-12">
+            <h1 class="mb-2">📎 Attachment Scanner</h1>
+            <p class="text-muted">Analyze email attachments for malware and phishing indicators</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Input Section -->
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Scan Attachments</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Attachment Information</label>
+                        <div id="attachmentsList"></div>
+                        <button type="button" class="btn btn-sm btn-secondary" onclick="addAttachment()">
+                            + Add Attachment
+                        </button>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="emailSubject" class="form-label">Email Subject (Optional)</label>
+                        <input type="text" id="emailSubject" class="form-control" 
+                               placeholder="e.g., Invoice #2024-001">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="emailBody" class="form-label">Email Body (Optional)</label>
+                        <textarea id="emailBody" class="form-control" rows="4" 
+                                  placeholder="Paste email text..."></textarea>
+                    </div>
+                    
+                    <button onclick="scanAttachments()" class="btn btn-primary btn-lg w-100">
+                        <i class="fas fa-file-circle-check"></i> Scan Attachments
+                    </button>
+                </div>
+            </div>
+
+            <!-- Results Section -->
+            <div id="resultsContainer"></div>
+        </div>
+
+        <!-- Info Sidebar -->
+        <div class="col-lg-4">
+            <div class="card bg-danger text-white mb-4">
+                <div class="card-body">
+                    <h5>Attachment Risks</h5>
+                    <p>Dangerous file types:</p>
+                    <ul class="small mb-0">
+                        <li>.exe - Executables</li>
+                        <li>.docm - Macro documents</li>
+                        <li>.zip - Archives</li>
+                        <li>.vbs - Scripts</li>
+                        <li>Double extensions</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="card bg-warning text-dark">
+                <div class="card-body">
+                    <h5>Safe Practices</h5>
+                    <ul class="small mb-0">
+                        <li>Never open unexpected attachments</li>
+                        <li>Verify sender identity</li>
+                        <li>Scan before opening</li>
+                        <li>Watch for urgency language</li>
+                        <li>Report suspicious files</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let attachmentCount = 0;
+
+function addAttachment() {
+    attachmentCount++;
+    const html = `
+        <div class="card card-sm mb-2" id="attachment-${attachmentCount}">
+            <div class="card-body p-2">
+                <div class="row g-2">
+                    <div class="col-md-8">
+                        <input type="text" class="form-control form-control-sm" 
+                               placeholder="Filename (e.g., document.pdf)" 
+                               id="filename-${attachmentCount}">
+                    </div>
+                    <div class="col-md-4">
+                        <input type="number" class="form-control form-control-sm" 
+                               placeholder="Size (bytes)" 
+                               id="size-${attachmentCount}">
+                    </div>
+                    <div class="col-12">
+                        <button type="button" class="btn btn-sm btn-outline-danger" 
+                                onclick="removeAttachment(${attachmentCount})">
+                            Remove
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    const container = document.getElementById('attachmentsList');
+    if (container.innerHTML === '') {
+        container.innerHTML = html;
+    } else {
+        container.innerHTML += html;
+    }
+}
+
+function removeAttachment(id) {
+    const element = document.getElementById(`attachment-${id}`);
+    if (element) element.remove();
+}
+
+async function scanAttachments() {
+    const attachments = [];
+    
+    // Collect all attachments
+    for (let i = 1; i <= attachmentCount; i++) {
+        const filename = document.getElementById(`filename-${i}`);
+        const size = document.getElementById(`size-${i}`);
+        
+        if (filename && filename.value) {
+            attachments.push({
+                filename: filename.value,
+                size: size ? parseInt(size.value) || 0 : 0
+            });
+        }
+    }
+    
+    if (attachments.length === 0) {
+        alert('Please add at least one attachment');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/analyze-attachments', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                attachments: attachments,
+                subject: document.getElementById('emailSubject').value,
+                body: document.getElementById('emailBody').value
+            })
+        });
+        
+        const result = await response.json();
+        displayResults(result);
+    } catch (error) {
+        console.error('Error scanning attachments:', error);
+        alert('Error scanning attachments');
+    }
+}
+
+function getRiskBadge(riskLevel) {
+    const colors = {
+        'critical': 'danger',
+        'high': 'warning',
+        'medium': 'info',
+        'low': 'success'
+    };
+    return colors[riskLevel] || 'secondary';
+}
+
+function displayResults(result) {
+    const container = document.getElementById('resultsContainer');
+    
+    let html = `
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Attachment Scan Results</h5>
+            </div>
+            <div class="card-body">
+    `;
+    
+    // Overall Summary
+    html += `
+        <div class="alert alert-${getRiskBadge(result.overall_risk_level)}">
+            <strong>Overall Risk: ${(result.overall_risk_level || 'UNKNOWN').toUpperCase()}</strong><br>
+            ${result.summary}<br>
+    `;
+    
+    if (result.recommendations && result.recommendations.length > 0) {
+        html += `<strong>⚠️ ${result.recommendations[0]}</strong>`;
+    }
+    
+    html += `</div>`;
+    
+    // Attachment Details
+    if (result.attachments && result.attachments.length > 0) {
+        html += `
+            <h6>📋 Attachment Analysis</h6>
+            <div class="table-responsive mb-4">
+                <table class="table table-sm table-bordered">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Filename</th>
+                            <th>Risk</th>
+                            <th>Extension</th>
+                            <th>Verdict</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+        
+        result.attachments.forEach(attachment => {
+            const riskLevel = attachment.risk_level || 'unknown';
+            html += `
+                <tr>
+                    <td><strong>${attachment.filename}</strong></td>
+                    <td>
+                        <span class="badge bg-${getRiskBadge(riskLevel)}">
+                            ${riskLevel.toUpperCase()}
+                        </span>
+                    </td>
+                    <td>${attachment.analysis.filename.extension || 'N/A'}</td>
+                    <td><small>${attachment.verdict}</small></td>
+                </tr>
+            `;
+        });
+        
+        html += `
+                    </tbody>
+                </table>
+            </div>
+        `;
+        
+        // Detailed Flags
+        let hasFlags = false;
+        result.attachments.forEach((attachment, idx) => {
+            if (attachment.analysis.filename.suspicious_flags && attachment.analysis.filename.suspicious_flags.length > 0) {
+                if (!hasFlags) {
+                    html += `<h6>⚠️ Suspicious Findings</h6><div class="mb-4">`;
+                    hasFlags = true;
+                }
+                html += `<div class="card card-sm mb-2"><div class="card-body p-2"><strong>${attachment.filename}</strong><br>`;
+                attachment.analysis.filename.suspicious_flags.forEach(flag => {
+                    html += `<small class="text-danger">• ${flag}<br></small>`;
+                });
+                html += `</div></div>`;
+            }
+        });
+        if (hasFlags) html += `</div>`;
+    }
+    
+    // Safety Checklist
+    if (result.safety_checklist) {
+        html += `
+            <div class="alert alert-info mt-4">
+                <h6>✅ Safety Checklist</h6>
+                <div class="row">
+                    <div class="col-md-6">
+                        <strong>Before Opening:</strong>
+                        <ul class="small mb-0">
+                            ${result.safety_checklist.before_opening.map(item => `<li>${item}</li>`).join('')}
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Red Flags:</strong>
+                        <ul class="small mb-0">
+                            ${result.safety_checklist.red_flags.map(item => `<li>${item}</li>`).join('')}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    // Recommendations
+    if (result.recommendations && result.recommendations.length > 0) {
+        html += `
+            <div class="alert alert-warning">
+                <h6>🛡️ Recommendations</h6>
+                <ul class="mb-0">
+                    ${result.recommendations.map(rec => `<li>${rec}</li>`).join('')}
+                </ul>
+            </div>
+        `;
+    }
+    
+    html += `
+            </div>
+        </div>
+    `;
+    
+    container.innerHTML = html;
+}
+
+// Initialize with one attachment field
+document.addEventListener('DOMContentLoaded', () => {
+    addAttachment();
+});
+</script>
+{% endblock %}

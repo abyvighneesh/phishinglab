@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row mb-5">
+        <div class="col-lg-12">
+            <h1 class="mb-2">🌍 IP Geolocation Analyzer</h1>
+            <p class="text-muted">Analyze IP addresses for location, ISP, and phishing threats</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Input Section -->
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Enter IP Address</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="ipInput" class="form-label">IP Address</label>
+                        <input type="text" id="ipInput" class="form-control form-control-lg" 
+                               placeholder="e.g., 8.8.8.8 or 2001:4860:4860::8888">
+                        <small class="text-muted">Enter IPv4 or IPv6 address</small>
+                    </div>
+                    <button onclick="analyzeIP()" class="btn btn-primary btn-lg w-100">
+                        <i class="fas fa-magnifying-glass"></i> Analyze IP
+                    </button>
+                </div>
+            </div>
+
+            <!-- Results Section -->
+            <div id="resultsContainer"></div>
+        </div>
+
+        <!-- Info Sidebar -->
+        <div class="col-lg-4">
+            <div class="card bg-info text-white mb-4">
+                <div class="card-body">
+                    <h5>What is IP Geolocation?</h5>
+                    <p>IP geolocation helps identify:</p>
+                    <ul class="mb-0">
+                        <li>Physical location of IP</li>
+                        <li>Internet Service Provider (ISP)</li>
+                        <li>VPN/Proxy usage</li>
+                        <li>Threat indicators</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="card bg-warning text-dark">
+                <div class="card-body">
+                    <h5>Red Flags to Watch</h5>
+                    <ul class="small mb-0">
+                        <li>VPN or Proxy detected</li>
+                        <li>Tor exit nodes</li>
+                        <li>Datacenter IPs</li>
+                        <li>High-risk countries</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+async function analyzeIP() {
+    const ip = document.getElementById('ipInput').value.trim();
+    
+    if (!ip) {
+        alert('Please enter an IP address');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/analyze-ip', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ip: ip })
+        });
+        
+        const result = await response.json();
+        displayResults(result);
+    } catch (error) {
+        console.error('Error analyzing IP:', error);
+        alert('Error analyzing IP');
+    }
+}
+
+function getRiskBadge(riskLevel) {
+    const colors = {
+        'critical': 'danger',
+        'high': 'warning',
+        'medium': 'info',
+        'low': 'success',
+        'unknown': 'secondary'
+    };
+    return colors[riskLevel] || 'secondary';
+}
+
+function displayResults(result) {
+    const container = document.getElementById('resultsContainer');
+    
+    let html = `
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Analysis Results for ${result.ip_address}</h5>
+            </div>
+            <div class="card-body">
+    `;
+    
+    if (result.valid === false) {
+        html += `<div class="alert alert-danger">${result.error}</div>`;
+    } else {
+        // Risk Score
+        html += `
+            <div class="alert alert-${getRiskBadge(result.risk_level)}">
+                <strong>Risk Level: ${(result.risk_level || 'Unknown').toUpperCase()}</strong><br>
+                Risk Score: ${result.risk_score}/100
+            </div>
+        `;
+        
+        // Location Info
+        if (result.country) {
+            html += `
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <h6>Location Information</h6>
+                        <p>
+                            <strong>Country:</strong> ${result.country} (${result.country_code || 'N/A'})<br>
+                            <strong>City:</strong> ${result.city || 'Unknown'}<br>
+                            <strong>Region:</strong> ${result.region || 'Unknown'}<br>
+                            <strong>Timezone:</strong> ${result.timezone || 'Unknown'}<br>
+                            ${result.latitude ? `<strong>Coordinates:</strong> ${result.latitude}, ${result.longitude}<br>` : ''}
+                        </p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>ISP & Network</h6>
+                        <p>
+                            <strong>ISP:</strong> ${result.isp || 'Unknown'}<br>
+                            <strong>Organization:</strong> ${result.organization || 'Unknown'}<br>
+                            <strong>AS:</strong> ${result.as || 'Unknown'}<br>
+                            <strong>Type:</strong> ${result.type || 'Unknown'}
+                        </p>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Threat Indicators
+        if (result.indicators && result.indicators.length > 0) {
+            html += `
+                <h6>⚠️ Threat Indicators</h6>
+                <div class="mb-4">
+                    ${result.indicators.map(ind => `
+                        <div class="alert alert-warning alert-sm mb-2" style="padding: 8px;">
+                            ${ind}
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+        
+        // Defense Recommendations
+        html += `
+            <div class="alert alert-info">
+                <h6>🛡️ Recommendations</h6>
+                <ul class="mb-0">
+                    <li>Verify sender identity through official channels</li>
+                    <li>Report suspicious IPs to security team</li>
+                    <li>Use email authentication (SPF, DKIM, DMARC)</li>
+                    <li>Implement IP-based security policies</li>
+                </ul>
+            </div>
+        `;
+    }
+    
+    html += `
+            </div>
+        </div>
+    `;
+    
+    container.innerHTML = html;
+}
+
+// Allow Enter key to analyze
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('ipInput').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') analyzeIP();
+    });
+});
+</script>
+{% endblock %}
