@@ -1,5 +1,9 @@
 {
   "version": 2,
-  "buildCommand": "pip install -r requirements.txt",
-  "framework": "flask"
+  "builds": [
+    {
+      "src": "Dockerfile",
+      "use": "@vercel/docker"
+    }
+  ]
 }
