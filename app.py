@@ -83,9 +83,14 @@ login_manager.login_view = 'login'
 
 # Create tables
 with app.app_context():
-    db.create_all()
-    # Initialize default learning modules
-    create_default_modules()
+    try:
+        db.create_all()
+        # Initialize default learning modules
+        create_default_modules()
+    except Exception as e:
+        # Log database initialization errors but don't crash
+        print(f"Warning: Database initialization error (this is okay on Vercel): {e}")
+        pass
 
 @login_manager.user_loader
 def load_user(user_id):
