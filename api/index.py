@@ -1,38 +1,29 @@
 """
 Vercel serverless entry point for PhishLab
-This file handles all requests from Vercel
 """
 import sys
 import os
 
-# Add parent directory to path so we can import app
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 # Set production environment
 os.environ['FLASK_ENV'] = 'production'
 
+# Add parent directory to path
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 try:
-    # Import the Flask app from app.py
     from app import app
     
-    # Export the app for Vercel
-    # Vercel will call this as a WSGI application
-    handler = app
+    # This is the entry point for Vercel
+    # Vercel expects a WSGI application object named 'app'
     
-except Exception as e:
-    # If there's an import error, create a minimal error handler
-    import json
+except ImportError as e:
+    # Fallback error handler
     from flask import Flask
+    app = Flask(__name__)
     
-    error_app = Flask(__name__)
-    
-    @error_app.route('/')
-    @error_app.route('/<path:path>')
-    def error_handler(path=None):
-        return json.dumps({
-            'error': 'Application failed to load',
-            'message': str(e),
-            'type': type(e).__name__
-        }), 500
-    
-    handler = error_app
+    @app.route('/')
+    def error():
+        return {
+            'error': 'Failed to import main Flask app',
+            'details': str(e)
+        }, 500
