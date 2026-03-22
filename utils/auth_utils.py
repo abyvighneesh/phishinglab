@@ -5,9 +5,6 @@ Password strength validation and email verification
 
 import re
 import secrets
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 from datetime import datetime, timedelta
 
 # Password strength requirements
@@ -120,66 +117,39 @@ def send_verification_email(user_email, username, verification_token, verificati
     In production, configure SMTP settings.
     """
     try:
-        # For development/demo: just return True
-        # In production, implement SMTP:
-        """
-        sender_email = os.getenv('SMTP_EMAIL', 'noreply@phishlab.local')
-        sender_password = os.getenv('SMTP_PASSWORD', '')
-        smtp_server = os.getenv('SMTP_SERVER', 'localhost')
-        smtp_port = int(os.getenv('SMTP_PORT', 587))
-        
-        message = MIMEMultipart('alternative')
-        message['Subject'] = 'Verify your PhishLab Email'
-        message['From'] = sender_email
-        message['To'] = user_email
-        
-        text = f"""
-        Hi {username},
-        
-        Welcome to PhishLab! Please verify your email address by clicking the link below:
-        
-        {verification_link}
-        
-        This link will expire in 24 hours.
-        
-        If you did not create this account, please ignore this email.
-        
-        Best regards,
-        PhishLab Team
-        """
-        
-        html = f"""
-        <html>
-            <body>
-                <h2>Welcome to PhishLab!</h2>
-                <p>Hi {username},</p>
-                <p>Please verify your email address by clicking the button below:</p>
-                <p><a href="{verification_link}" style="background-color:#007bff;color:white;padding:10px 20px;text-decoration:none;border-radius:5px;">Verify Email</a></p>
-                <p>Or copy this link: {verification_link}</p>
-                <p><small>This link will expire in 24 hours.</small></p>
-                <p>If you did not create this account, please ignore this email.</p>
-                <p>Best regards,<br/>PhishLab Team</p>
-            </body>
-        </html>
-        """
-        
-        part1 = MIMEText(text, 'plain')
-        part2 = MIMEText(html, 'html')
-        message.attach(part1)
-        message.attach(part2)
-        
-        server = smtplib.SMTP(smtp_server, smtp_port)
-        server.starttls()
-        server.login(sender_email, sender_password)
-        server.sendmail(sender_email, user_email, message.as_string())
-        server.quit()
-        """
-        
         # Development mode: just log it
         print(f"\n📧 [EMAIL WOULD BE SENT]")
         print(f"To: {user_email}")
         print(f"Subject: Verify your PhishLab Email")
         print(f"Verification Link: {verification_link}\n")
+        
+        # Production SMTP implementation example (uncomment and configure for production):
+        # import smtplib
+        # from email.mime.text import MIMEText
+        # from email.mime.multipart import MIMEMultipart
+        # import os
+        #
+        # sender_email = os.getenv('SMTP_EMAIL', 'noreply@phishlab.local')
+        # sender_password = os.getenv('SMTP_PASSWORD', '')
+        # smtp_server = os.getenv('SMTP_SERVER', 'localhost')
+        # smtp_port = int(os.getenv('SMTP_PORT', 587))
+        #
+        # message = MIMEMultipart('alternative')
+        # message['Subject'] = 'Verify your PhishLab Email'
+        # message['From'] = sender_email
+        # message['To'] = user_email
+        #
+        # text = f"Hi {username},\n\nVerify your email: {verification_link}\n\n24-hour expiry."
+        # html = f"<html><body><h2>Verify Email</h2><p><a href='{verification_link}'>Click here to verify</a></p></body></html>"
+        #
+        # message.attach(MIMEText(text, 'plain'))
+        # message.attach(MIMEText(html, 'html'))
+        #
+        # server = smtplib.SMTP(smtp_server, smtp_port)
+        # server.starttls()
+        # server.login(sender_email, sender_password)
+        # server.sendmail(sender_email, user_email, message.as_string())
+        # server.quit()
         
         return True
     except Exception as e:

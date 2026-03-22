@@ -111,48 +111,35 @@ def log_api_call(endpoint, method, status_code, response_time=0):
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
-    """User registration with email verification and password strength"""
+    """User registration with password strength validation"""
     if request.method == 'POST':
         data = request.get_json()
         username = data.get('username')
-        email = data.get('email')
         password = data.get('password')
         
-        if not all([username, email, password]):
-            return jsonify({'error': 'All fields required'}), 400
+        if not all([username, password]):
+            return jsonify({'error': 'Username and password required'}), 400
         
         if User.query.filter_by(username=username).first():
             return jsonify({'error': 'Username already exists'}), 400
-        
-        if User.query.filter_by(email=email).first():
-            return jsonify({'error': 'Email already exists'}), 400
         
         # Validate password strength
         password_validation = validate_password_strength(password)
         if not password_validation['valid']:
             return jsonify({'error': password_validation['message']}), 400
         
-        # Generate verification token
-        verification_token = generate_verification_token()
-        
-        # Create user with unverified email
+        # Create user without email requirement
         user = User(
             username=username,
-            email=email,
+            email=f'{username}@phishlab.local',  # Auto-generated placeholder email
             password_hash=generate_password_hash(password),
-            email_verified=False,
-            verification_token=verification_token,
-            verification_token_created_at=datetime.utcnow()
+            email_verified=True  # Auto-verified since we're not using email
         )
         db.session.add(user)
         db.session.commit()
         
-        # Send verification email
-        verification_link = url_for('verify_email', token=verification_token, _external=True)
-        send_verification_email(email, username, verification_token, verification_link)
-        
         return jsonify({
-            'message': 'Registration successful! Check your email to verify your account.',
+            'message': 'Registration successful! You can now login.',
             'redirect': url_for('login')
         }), 201
     
@@ -641,7 +628,109 @@ def admin_delete_user(user_id):
     return jsonify({'error': 'User not found'}), 404
 
 
-# ==================== SETTINGS ====================
+@app.route('/admin/api/add-user', methods=['POST'])
+@admin_required
+def admin_add_user():
+    """Add a new user (admin endpoint)"""
+    data = request.get_json()
+    username = data.get('username')
+    password = data.get('password')
+    
+    if not username or not password:
+        return jsonify({'error': 'Username and password required'}), 400
+    
+    if User.query.filter_by(username=username).first():
+        return jsonify({'error': 'Username already exists'}), 400
+    
+    password_validation = validate_password_strength(password)
+    if not password_validation['valid']:
+        return jsonify({'error': password_validation['message']}), 400
+    
+    user = User(
+        username=username,
+        email=f'{username}@phishlab.local',
+        password_hash=generate_password_hash(password),
+        email_verified=True
+    )
+    db.session.add(user)
+    db.session.commit()
+    
+    return jsonify({'message': 'User created successfully', 'user_id': user.id}), 201
+
+
+@app.route('/admin/performance')
+@admin_required
+def admin_performance():
+    """View logged-in student performance and activities"""
+    users = User.query.filter_by(is_admin=False).all()
+    
+    performance_data = []
+    for user in users:
+        quizzes = QuizResult.query.filter_by(user_id=user.id).order_by(QuizResult.completed_at.desc()).all()
+        scans = Scan.query.filter_by(user_id=user.id).order_by(Scan.created_at.desc()).all()
+        
+        if quizzes:
+            avg_quiz_score = sum(q.score for q in quizzes) / len(quizzes)
+        else:
+            avg_quiz_score = 0
+        
+        # Get latest activity
+        latest_activity_date = None
+        activities = []
+        
+        # Collect quiz activities
+        for quiz in quizzes[:5]:  # Last 5 quizzes
+            activities.append({
+                'type': '📝 Quiz',
+                'description': f'Scored {quiz.percentage}%',
+                'date': quiz.completed_at
+            })
+        
+        # Collect scan activities
+        for scan in scans[:5]:  # Last 5 scans
+            scan_type_emoji = {
+                'email': '📧',
+                'url': '🔗',
+                'header': '📋',
+                'login': '🔐'
+            }.get(scan.scan_type, '🔍')
+            
+            activities.append({
+                'type': f'{scan_type_emoji} {scan.scan_type.title()}',
+                'description': f'Risk: {scan.risk_score}%',
+                'date': scan.created_at
+            })
+        
+        activities.sort(key=lambda x: x['date'], reverse=True)
+        if activities:
+            latest_activity_date = activities[0]['date'].strftime('%Y-%m-%d %H:%M')
+        else:
+            latest_activity_date = 'No activity yet'
+        
+        performance_data.append({
+            'user_id': user.id,
+            'username': user.username,
+            'total_points': user.total_points,
+            'current_streak': user.current_streak,
+            'skill_level': user.skill_level,
+            'quizzes_completed': len(quizzes),
+            'avg_quiz_score': round(avg_quiz_score, 2),
+            'total_scans': len(scans),
+            'joined_date': user.created_at.strftime('%Y-%m-%d'),
+            'last_activity': latest_activity_date,
+            'rank': user.rank,
+            'activities': activities[:10]  # Last 10 activities
+        })
+    
+    # Sort by latest activity date - alphabetical sort will put "No activity yet" at the end
+    performance_data.sort(key=lambda x: x['last_activity'], reverse=True)
+    
+    return render_template('admin_performance.html', 
+                         performance_data=performance_data,
+                         total_students=len(performance_data))
+
+
+# ==================== SETTINGS ===================="
 
 @app.route('/settings')
 @login_required

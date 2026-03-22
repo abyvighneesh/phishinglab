@@ -85,11 +85,6 @@
                         </div>
                         
                         <div class="mb-3">
-                            <label class="form-label">Email</label>
-                            <input type="email" class="form-control" id="email" required>
-                        </div>
-                        
-                        <div class="mb-3">
                             <label class="form-label">Password</label>
                             <div class="password-input-wrapper">
                                 <input type="password" class="form-control" id="password" required>
@@ -214,11 +209,10 @@
                 e.preventDefault();
                 
                 const username = document.getElementById('username').value.trim();
-                const email = document.getElementById('email').value.trim();
                 const password = document.getElementById('password').value.trim();
                 
                 // Validate inputs
-                if (!username || !email || !password) {
+                if (!username || !password) {
                     errorContainer.innerHTML = 
                         '<div class="alert alert-warning">Please fill in all fields</div>';
                     return;
@@ -227,13 +221,6 @@
                 if (username.length < 3) {
                     errorContainer.innerHTML = 
                         '<div class="alert alert-warning">Username must be at least 3 characters</div>';
-                    return;
-                }
-                
-                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                if (!emailRegex.test(email)) {
-                    errorContainer.innerHTML = 
-                        '<div class="alert alert-warning">Please enter a valid email address</div>';
                     return;
                 }
                 
@@ -251,23 +238,26 @@
                 submitBtn.innerHTML = 'Registering...';
                 
                 try {
+                    console.log('Attempting to register:', {username, password: '***'});
+                    
                     const response = await fetch('/register', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json'
                         },
-                        body: JSON.stringify({username, email, password})
+                        body: JSON.stringify({username, password})
                     });
                     
+                    console.log('Response status:', response.status);
+                    
                     const data = await response.json();
+                    console.log('Response data:', data);
                     
                     if (response.ok) {
                         errorContainer.innerHTML = 
                             `<div class="alert alert-success" role="alert">
-                                <strong>Registration Successful!</strong><br>
-                                A verification email has been sent to ${email}.<br>
-                                Please check your inbox and click the verification link to activate your account.<br>
-                                Redirecting to login in 3 seconds...
+                                <strong>✓ Registration Successful!</strong><br>
+                                Your account has been created. Redirecting to login...
                             </div>`;
                         setTimeout(() => {
                             window.location.href = data.redirect;
@@ -275,18 +265,25 @@
                     } else {
                         errorContainer.innerHTML = 
                             `<div class="alert alert-danger" role="alert">
-                                <strong>Registration Failed!</strong><br>
-                                ${data.error || 'An error occurred'}
+                                <strong>❌ Registration Failed!</strong><br>
+                                ${data.error || 'An error occurred. Please try again.'}
                             </div>`;
                         submitBtn.disabled = false;
                         submitBtn.innerHTML = 'Register';
                     }
                 } catch (error) {
-                    console.error('Registration error:', error);
+                    console.error('Registration error details:', {
+                        message: error.message,
+                        name: error.name,
+                        stack: error.stack
+                    });
+                    
                     errorContainer.innerHTML = 
                         `<div class="alert alert-danger" role="alert">
-                            <strong>Error!</strong><br>
-                            Unable to connect to server. Please try again.
+                            <strong>⚠️ Connection Error</strong><br>
+                            <small>Unable to connect to the server at http://localhost:5000/register</small><br>
+                            <small style="color: #666;">Make sure the Flask server is running.</small><br>
+                            <small style="color: #999;">Error: ${error.message}</small>
                         </div>`;
                     submitBtn.disabled = false;
                     submitBtn.innerHTML = 'Register';

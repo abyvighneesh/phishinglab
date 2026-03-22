@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Performance - PhishLab Admin</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: #0f0f0f !important;
+            color: #fff !important;
+        }
+        
+        .container-fluid {
+            background: #0f0f0f !important;
+        }
+        
+        h1, h2, h3, h4, h5, h6 {
+            color: #fff !important;
+        }
+        
+        .performance-container {
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%);
+            padding: 20px;
+            border-radius: 10px;
+            color: white;
+        }
+        
+        .stat-card {
+            transition: transform 0.3s;
+            border: none;
+            background: rgba(255, 255, 255, 0.1) !important;
+            backdrop-filter: blur(10px);
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+            background: rgba(255, 255, 255, 0.15) !important;
+        }
+        
+        .stat-card .card-body {
+            background: transparent !important;
+        }
+        
+        .rank-badge {
+            font-size: 14px;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-weight: bold;
+        }
+        
+        .skill-badge {
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 13px;
+        }
+        
+        .skill-expert {
+            background-color: #d4a574 !important;
+            color: white;
+        }
+        
+        .skill-advanced {
+            background-color: #ff9800 !important;
+            color: white;
+        }
+        
+        .skill-intermediate {
+            background-color: #2196f3 !important;
+            color: white;
+        }
+        
+        .skill-beginner {
+            background-color: #4caf50 !important;
+            color: white;
+        }
+        
+        .performance-row {
+            padding: 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .performance-row:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+        
+        table {
+            color: white;
+            background-color: #1a1a1a !important;
+        }
+        
+        .chart-title {
+            color: white;
+            font-weight: bold;
+            margin-top: 30px;
+        }
+        
+        .card {
+            background-color: #1a1a1a !important;
+            border-color: rgba(255, 255, 255, 0.1) !important;
+        }
+        
+        .card-header {
+            background-color: #2a2a2a !important;
+            border-color: rgba(255, 255, 255, 0.1) !important;
+        }
+        
+        .card-body {
+            background-color: #1a1a1a !important;
+            color: #fff !important;
+        }
+        
+        .badge {
+            background-color: #2a2a2a !important;
+            color: #fff !important;
+        }
+        
+        .text-muted {
+            color: #aaa !important;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/"><strong>🎣 PhishLab Admin</strong></a>
+            <div class="collapse navbar-collapse">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link" href="/admin">Dashboard</a></li>
+                    <li class="nav-item"><a class="nav-link active" href="/admin/performance">📊 Performance</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/admin/users">👥 Users</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/admin/templates">Templates</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/logout">Logout</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid my-5">
+        <h1 class="mb-4">� Active Students & Their Activities</h1>
+
+        <!-- Summary Stats -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card stat-card text-white text-center">
+                    <div class="card-body">
+                        <h5>Active Students</h5>
+                        <h2 class="text-info">{{ total_students }}</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stat-card text-white text-center">
+                    <div class="card-body">
+                        <h5>Top Performer</h5>
+                        <h4 class="text-success">
+                            {% if performance_data %}
+                                {{ performance_data[0].username }}
+                            {% else %}
+                                —
+                            {% endif %}
+                        </h4>
+                        <small>{{ performance_data[0].total_points if performance_data else 0 }} pts</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stat-card text-white text-center">
+                    <div class="card-body">
+                        <h5>Total Quizzes</h5>
+                        <h4 class="text-warning">
+                            {% set total_quizzes = (performance_data | map(attribute='quizzes_completed') | list | sum) %}
+                            {{ total_quizzes }}
+                        </h4>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stat-card text-white text-center">
+                    <div class="card-body">
+                        <h5>Total Scans</h5>
+                        <h4 class="text-danger">
+                            {% set total_scans = (performance_data | map(attribute='total_scans') | list | sum) %}
+                            {{ total_scans }}
+                        </h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Performance Table -->
+        <div class="card" style="background-color: rgba(10, 14, 39, 0.8); border: 1px solid rgba(255, 255, 255, 0.1);">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">� Student Activities (Sorted by Latest Activity)</h5>
+            </div>
+            <div class="card-body p-0">
+                {% if performance_data %}
+                    {% for student in performance_data %}
+                    <div style="padding: 20px; border-bottom: 1px solid rgba(255, 255, 255, 0.1); background: rgba(0,0,0,0.3);">
+                        <!-- Student Header -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <h5 style="color: white; margin: 0;">
+                                    👤 {{ student.username }}
+                                    <span class="badge bg-info">{{ student.rank }}</span>
+                                </h5>
+                                <small class="text-muted" style="display: block; margin-top: 5px;">
+                                    📅 Joined: {{ student.joined_date }}
+                                </small>
+                                <small class="text-muted" style="display: block; margin-top: 3px;">
+                                    ⏰ Last Activity: <strong style="color: #fff;">{{ student.last_activity }}</strong>
+                                </small>
+                            </div>
+                            <div class="col-md-6 text-end">
+                                <span class="badge bg-success">{{ student.total_points }} points</span>
+                                <span class="badge bg-warning">{{ student.quizzes_completed }} quizzes</span>
+                                <span class="badge bg-danger">{{ student.total_scans }} scans</span>
+                                <span class="badge skill-{{ student.skill_level.lower() }}">{{ student.skill_level }}</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Activities Section -->
+                        <div>
+                            <h6 style="color: #fff; margin-top: 15px; margin-bottom: 10px;">📊 What They Have Done:</h6>
+                            <div style="margin-left: 15px;">
+                                {% if student.activities %}
+                                    <ul style="list-style: none; padding: 0; margin: 0; color: #ddd;">
+                                        {% for activity in student.activities %}
+                                        <li style="padding: 8px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.05);">
+                                            <strong>{{ activity.type }}</strong> - {{ activity.description }}
+                                            <span class="text-muted" style="font-size: 12px; float: right;">{{ activity.date.strftime('%Y-%m-%d %H:%M') }}</span>
+                                        </li>
+                                        {% endfor %}
+                                    </ul>
+                                {% else %}
+                                    <p class="text-muted" style="margin: 5px 0;">⚠️ No activities recorded yet - Student has not taken any quizzes or scans</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <!-- Action Buttons -->
+                        <div style="margin-top: 15px; display: flex; gap: 10px;">
+                            <button class="btn btn-sm btn-danger" onclick="deleteStudentUser({{ student.user_id }}, '{{ student.username }}')">
+                                🗑️ Remove Student
+                            </button>
+                            {% if student.quizzes_completed > 0 or student.total_scans > 0 %}
+                            <button class="btn btn-sm btn-info" onclick="alert('Exporting {{ student.username }} details'); console.log('Export clicked for {{ student.username }}')">
+                                📥 Export Report
+                            </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div style="padding: 40px; text-align: center; color: #999;">
+                        <p>No students registered. <a href="/admin/users" class="text-info">Add students</a> from the Users page.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Performance Insights -->
+        <div class="row mt-5">
+            <div class="col-md-12">
+                <div class="card" style="background-color: rgba(10, 14, 39, 0.8); border: 1px solid rgba(255, 255, 255, 0.1);">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0">✅ Quick Actions</h5>
+                    </div>
+                    <div class="card-body">
+                        <p style="color: white;">
+                            📌 <strong>Manage Students:</strong> Go to <a href="/admin/users" class="text-info"><strong>👥 Users</strong></a> to add new students or view all user accounts.
+                        </p>
+                        <p style="color: white;">
+                            📊 <strong>This Dashboard:</strong> Shows only students who have logged in and performed activities (taken quizzes or run scans).
+                        </p>
+                        <p style="color: white; margin-bottom: 0;">
+                            🔍 <strong>Track Student Activities:</strong> Each student's recent activities are displayed above, sorted by latest activity.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        async function deleteStudentUser(userId, username) {
+            if (confirm(`⚠️ Remove student "${username}"? This will delete all their data.`)) {
+                try {
+                    const response = await fetch(`/admin/api/delete-user/${userId}`, {
+                        method: 'DELETE'
+                    });
+                    if (response.ok) {
+                        alert(`✓ Student "${username}" has been removed`);
+                        location.reload();
+                    } else {
+                        alert('❌ Error removing student');
+                    }
+                } catch (error) {
+                    alert('❌ Connection error: ' + error);
+                }
+            }
+        }
+    </script>
+</body>
+</html>
