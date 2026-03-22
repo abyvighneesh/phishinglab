@@ -1,0 +1,25 @@
+{
+  "version": 2,
+  "buildCommand": "pip install -r requirements.txt",
+  "env": {
+    "FLASK_ENV": "production"
+  },
+  "functions": {
+    "api/**": {
+      "runtime": "python3.11"
+    }
+  },
+  "routes": [
+    {
+      "src": "/static/(.*)",
+      "dest": "/static/$1",
+      "headers": {
+        "Cache-Control": "public, max-age=3600"
+      }
+    },
+    {
+      "src": "/(.*)",
+      "dest": "api/index.py"
+    }
+  ]
+}

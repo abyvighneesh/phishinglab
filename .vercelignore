@@ -1,0 +1,13 @@
+# Vercel will ignore these files
+__pycache__
+*.pyc
+.pytest_cache
+.venv
+venv
+node_modules
+.git
+.env
+.env.local
+*.db
+phishlab.db-shm
+phishlab.db-wal
