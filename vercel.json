@@ -1,11 +1,5 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "/api",
-      "use": "@vercel/python"
-    }
-  ],
   "routes": [
     {
       "src": "/(.*)",
@@ -13,7 +7,6 @@
     }
   ],
   "env": {
-    "PYTHONDONTWRITEBYTECODE": "1",
     "FLASK_ENV": "production"
   }
 }
